@@ -97,6 +97,8 @@ function lf_generate_pdf($data)
     $html .= '.pdf-logo-table { width: 100%; margin-bottom: 4px; }';
     $html .= '.pdf-logo-table td { width: 33%; text-align: center; border-bottom: none; padding: 0 4px 2px 4px; }';
     $html .= '.pdf-logo-table img { max-height: 42px; max-width: 100%; }';
+    $html .= 'ul.pdf-validity-list { margin: 0 0 8px 0; padding-left: 1.35em; }';
+    $html .= 'ul.pdf-validity-list li { margin: 0 0 3px 0; }';
     $html .= '</style></head><body>';
 
     $html .= '<div class="pdf-header">';
@@ -116,7 +118,7 @@ function lf_generate_pdf($data)
     $html .= '<tr><th>Telefonnummar hjá íðkara</th><td>' . htmlspecialchars($phone, ENT_QUOTES, 'UTF-8') . '</td></tr>';
     $html .= '<tr><th>Teldupostur hjá íðkara</th><td>' . htmlspecialchars($email, ENT_QUOTES, 'UTF-8') . '</td></tr>';
     $html .= '<tr><th>Felag</th><td>' . htmlspecialchars($club, ENT_QUOTES, 'UTF-8') . '</td></tr>';
-    $html .= '<tr><th>Dagur</th><td>' . htmlspecialchars($date, ENT_QUOTES, 'UTF-8') . '</td></tr>';
+    $html .= '<tr><th>Galdandi frá</th><td>' . htmlspecialchars($date, ENT_QUOTES, 'UTF-8') . '</td></tr>';
     $html .= '</table>';
     $html .= '</div>';
 
@@ -130,6 +132,16 @@ function lf_generate_pdf($data)
         $html .= '</table>';
         $html .= '</div>';
     }
+
+    $html .= '<div class="section">';
+    $html .= '<p style="font-size:11px; line-height:1.3; margin:0 0 5px 0;">Lyftiloyvið er galdandi fram til eina av hesum:</p>';
+    $html .= '<ul class="pdf-validity-list" style="font-size:11px; line-height:1.35;">';
+    $html .= '<li>Íðkarin sendir skrivliga umbøn um at strika lyftiloyvið</li>';
+    $html .= '<li>Felagið sendir skrivliga umbøn um at strika lyftiloyvið</li>';
+    $html .= '<li>Íðkarin verður dømdur sekur í einari doping roynd</li>';
+    $html .= '<li>Íðkarin skiftur felag, og far tískil eitt nýtt lyftiloyvið</li>';
+    $html .= '</ul>';
+    $html .= '</div>';
 
     $html .= '<div class="section">';
     $html .= '<h2>Dopingváttan</h2>';

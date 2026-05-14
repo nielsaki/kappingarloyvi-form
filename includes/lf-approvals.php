@@ -18,7 +18,7 @@ function lf_build_application_summary_html($data) {
         'Bústaður' => ($data['address'] ?? ''),
         'Býur/bygd' => ($data['city'] ?? ''),
         'Felag' => ($data['club'] ?? ''),
-        'Dagur' => ($data['date'] ?? ''),
+        'Galdandi frá' => ($data['date'] ?? ''),
     ];
 
     $html  = '<div style="max-width:560px;margin:0.6rem auto 0;font-family:system-ui,-apple-system,BlinkMacSystemFont,\'Segoe UI\',sans-serif;font-size:13px;">';
@@ -323,7 +323,7 @@ function lf_finalize_approval($row, $data) {
     $body .= "Býur/bygd: {$city}\n";
     $body .= "Telefonnummar hjá íðkara: {$phone}\n";
     $body .= "Felag: {$club}\n";
-    $body .= "Dagur (dags dato): {$date}\n";
+    $body .= "Galdandi frá: {$date}\n";
 
     if ($is_minor) {
         $body .= "\nÍðkari er undir 18 ár. Upplýsingar um verja:\n";

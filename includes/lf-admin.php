@@ -118,11 +118,17 @@ function lf_render_admin_page() {
                 $data['city']      = sanitize_text_field($_POST['city'] ?? '');
                 $data['club']      = sanitize_text_field($_POST['club'] ?? '');
 
-                // minor/guardian fields
-                $data['is_minor']        = !empty($_POST['is_minor']) ? true : false;
-                $data['guardian_name']   = sanitize_text_field($_POST['guardian_name'] ?? '');
-                $data['guardian_email']  = sanitize_email($_POST['guardian_email'] ?? '');
-                $data['guardian_phone']  = sanitize_text_field($_POST['guardian_phone'] ?? '');
+                // minor/guardian fields (disabled inputs send nothing – clear when ikki minor)
+                $data['is_minor'] = !empty($_POST['is_minor']) ? true : false;
+                if (!empty($data['is_minor'])) {
+                    $data['guardian_name']  = sanitize_text_field($_POST['guardian_name'] ?? '');
+                    $data['guardian_email'] = sanitize_email($_POST['guardian_email'] ?? '');
+                    $data['guardian_phone'] = sanitize_text_field($_POST['guardian_phone'] ?? '');
+                } else {
+                    $data['guardian_name']  = '';
+                    $data['guardian_email'] = '';
+                    $data['guardian_phone'] = '';
+                }
 
                 // Dates & approvals (PDF / goymd data)
                 $data['date'] = sanitize_text_field($_POST['submission_date'] ?? '');
@@ -269,6 +275,7 @@ function lf_render_admin_page() {
             $city = esc_attr($data['city'] ?? '');
             $club = $data['club'] ?? '';
             $is_minor = !empty($data['is_minor']);
+            $g_fields_disabled = $is_minor ? '' : ' disabled';
             $gname = esc_attr($data['guardian_name'] ?? '');
             $gemail = esc_attr($data['guardian_email'] ?? '');
             $gphone = esc_attr($data['guardian_phone'] ?? '');
@@ -299,11 +306,11 @@ function lf_render_admin_page() {
             echo '</select></td></tr>';
 
             echo '<tr><th>Íðkari er undir 18 ár</th><td><label><input type="checkbox" name="is_minor" value="1"' . ($is_minor ? ' checked="checked"' : '') . '> Ja</label></td></tr>';
-            echo '<tr><th><label for="lf_gname">Verji navn</label></th><td><input id="lf_gname" name="guardian_name" type="text" class="regular-text" value="' . $gname . '"></td></tr>';
-            echo '<tr><th><label for="lf_gemail">Verji teldupostur</label></th><td><input id="lf_gemail" name="guardian_email" type="email" class="regular-text" value="' . $gemail . '"></td></tr>';
-            echo '<tr><th><label for="lf_gphone">Verji telefonnummar</label></th><td><input id="lf_gphone" name="guardian_phone" type="text" class="regular-text" value="' . $gphone . '"></td></tr>';
+            echo '<tr><th><label for="lf_gname">Verji navn</label></th><td><input id="lf_gname" name="guardian_name" type="text" class="regular-text" value="' . $gname . '"' . $g_fields_disabled . '></td></tr>';
+            echo '<tr><th><label for="lf_gemail">Verji teldupostur</label></th><td><input id="lf_gemail" name="guardian_email" type="email" class="regular-text" value="' . $gemail . '"' . $g_fields_disabled . '></td></tr>';
+            echo '<tr><th><label for="lf_gphone">Verji telefonnummar</label></th><td><input id="lf_gphone" name="guardian_phone" type="text" class="regular-text" value="' . $gphone . '"' . $g_fields_disabled . '></td></tr>';
 
-            echo '<tr><th><label for="lf_submission_date">Dagur á skjalinum (umsókn)</label></th><td><input id="lf_submission_date" name="submission_date" type="text" class="regular-text" value="' . $submission_date . '" placeholder="YYYY-MM-DD"><p class="description">Sama dagur sum verður vístur undir «Dagur» á PDF. Vanligt format er <code>YYYY-MM-DD</code> (eisini brúkt í PDF-fílunavninum).</p></td></tr>';
+            echo '<tr><th><label for="lf_submission_date">Galdandi frá (á skjalinum)</label></th><td><input id="lf_submission_date" name="submission_date" type="text" class="regular-text" value="' . $submission_date . '" placeholder="YYYY-MM-DD"><p class="description">Sama dagur sum verður vístur undir «Galdandi frá» á PDF. Vanligt format er <code>YYYY-MM-DD</code> (eisini brúkt í PDF-fílunavninum).</p></td></tr>';
 
             echo '</tbody></table>';
 
@@ -312,8 +319,8 @@ function lf_render_admin_page() {
             echo '<table class="form-table"><tbody>';
             echo '<tr><th><label for="lf_approved_by">Góðkent av (felag), navn</label></th><td><input id="lf_approved_by" name="approved_by" type="text" class="regular-text" value="' . $approved_by_val . '"></td></tr>';
             echo '<tr><th><label for="lf_club_approved_date">Góðkent av (felag), dagur</label></th><td><input id="lf_club_approved_date" name="club_approved_date" type="text" class="regular-text" value="' . $club_approved_date_val . '" placeholder="YYYY-MM-DD"></td></tr>';
-            echo '<tr><th><label for="lf_guardian_approved_by">Góðkent av verja, navn</label></th><td><input id="lf_guardian_approved_by" name="guardian_approved_by" type="text" class="regular-text" value="' . $guardian_approved_by_val . '"' . (!empty($data['is_minor']) ? '' : ' disabled') . '></td></tr>';
-            echo '<tr><th><label for="lf_guardian_approved_date">Góðkent av verja, dagur</label></th><td><input id="lf_guardian_approved_date" name="guardian_approved_date" type="text" class="regular-text" value="' . $guardian_approved_date_val . '" placeholder="YYYY-MM-DD"' . (!empty($data['is_minor']) ? '' : ' disabled') . '></td></tr>';
+            echo '<tr><th><label for="lf_guardian_approved_by">Góðkent av verja, navn</label></th><td><input id="lf_guardian_approved_by" name="guardian_approved_by" type="text" class="regular-text" value="' . $guardian_approved_by_val . '"' . $g_fields_disabled . '></td></tr>';
+            echo '<tr><th><label for="lf_guardian_approved_date">Góðkent av verja, dagur</label></th><td><input id="lf_guardian_approved_date" name="guardian_approved_date" type="text" class="regular-text" value="' . $guardian_approved_date_val . '" placeholder="YYYY-MM-DD"' . $g_fields_disabled . '></td></tr>';
             echo '<tr><th><label for="lf_fss_approved_by">Góðkent av FSS, navn</label></th><td><input id="lf_fss_approved_by" name="fss_approved_by" type="text" class="regular-text" value="' . $fss_approved_by_val . '"></td></tr>';
             echo '<tr><th><label for="lf_fss_approved_date">Góðkent av FSS, dagur</label></th><td><input id="lf_fss_approved_date" name="fss_approved_date" type="text" class="regular-text" value="' . $fss_approved_date_val . '" placeholder="YYYY-MM-DD"></td></tr>';
             echo '</tbody></table>';
@@ -371,15 +378,21 @@ function lf_render_admin_page() {
                     closeBtn.addEventListener("click", function(){ box.style.display = "none"; openBtn.style.display = "inline-block"; });
                 }
                 var minorChk = document.querySelector("input[name=\"is_minor\"]");
+                var gName = document.getElementById("lf_gname");
+                var gMail = document.getElementById("lf_gemail");
+                var gPhone = document.getElementById("lf_gphone");
                 var gApprBy = document.getElementById("lf_guardian_approved_by");
                 var gApprDt = document.getElementById("lf_guardian_approved_date");
-                function syncGuardianApprovalFields(){
+                function syncMinorGuardianFields(){
                     var on = minorChk && minorChk.checked;
+                    if(gName) gName.disabled = !on;
+                    if(gMail) gMail.disabled = !on;
+                    if(gPhone) gPhone.disabled = !on;
                     if(gApprBy) gApprBy.disabled = !on;
                     if(gApprDt) gApprDt.disabled = !on;
                 }
-                if(minorChk) minorChk.addEventListener("change", syncGuardianApprovalFields);
-                syncGuardianApprovalFields();
+                if(minorChk) minorChk.addEventListener("change", syncMinorGuardianFields);
+                syncMinorGuardianFields();
             })();
             </script>';
 
@@ -447,7 +460,7 @@ function lf_render_admin_page() {
         'pending'     => 'Bíðar',
         'pending_fss' => 'Bíðar (FSS)',
         'approved'    => 'Góðkent',
-        'denied'      => 'Noktað',
+        'denied'      => 'Ikki góðkent',
     ];
     foreach ($status_options as $val => $label) {
         $sel = ($status_filter === $val) ? ' selected="selected"' : '';
@@ -565,6 +578,13 @@ function lf_render_admin_page() {
     echo '<th>Strika</th>';
     echo '</tr></thead><tbody>';
 
+    $lf_status_labels = [
+        'approved'    => 'Góðkent',
+        'pending'     => 'Bíðar',
+        'pending_fss' => 'Bíðar (FSS)',
+        'denied'      => 'Ikki góðkent',
+    ];
+
     foreach ($paged_rows as $row) {
         $data = maybe_unserialize($row->data);
         if (!is_array($data)) {
@@ -581,9 +601,7 @@ function lf_render_admin_page() {
         $denied_by     = $data['denied_by'] ?? '';
         $denied_reason = $data['denied_reason'] ?? '';
 
-        $status_label = $row->status === 'approved'
-            ? 'Góðkent'
-            : ($row->status === 'pending' ? 'Bíðar' : $row->status);
+        $status_label = $lf_status_labels[ $row->status ] ?? $row->status;
 
         $minor_label = $is_minor ? 'Ja' : 'Nei';
 
