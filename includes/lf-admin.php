@@ -5,6 +5,47 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * Teldupostar til margfeldis «send PDF aftur»: FSS, formans-mail hjá felagnum,
+ * íðkari og verji (bert um undir 18 ár og galdandi teldupostur hjá verja).
+ *
+ * @param array<string,mixed> $data
+ *
+ * @return list<string>
+ */
+function lf_admin_bulk_pdf_recipient_emails(array $data): array {
+    $recipient_list = [];
+
+    $fss_email = function_exists('lf_get_fss_email') ? lf_get_fss_email() : 'lyftiloyvi@fss.fo';
+    if ($fss_email !== '') {
+        $recipient_list[] = $fss_email;
+    }
+
+    $club_nm = isset($data['club']) ? (string) $data['club'] : '';
+    if ($club_nm !== '' && function_exists('lf_get_club_chair_emails')) {
+        $club_map = lf_get_club_chair_emails();
+        if (!empty($club_map[$club_nm])) {
+            $recipient_list[] = $club_map[$club_nm];
+        }
+    }
+
+    $ath = $data['email'] ?? '';
+    if ($ath && is_email($ath)) {
+        $recipient_list[] = $ath;
+    }
+
+    if (!empty($data['is_minor'])) {
+        $gmail = $data['guardian_email'] ?? '';
+        if ($gmail && is_email($gmail)) {
+            $recipient_list[] = $gmail;
+        }
+    }
+
+    return array_values(array_unique(array_filter(array_map(static function ($x) {
+        return strtolower(trim((string) $x));
+    }, $recipient_list))));
+}
+
+/**
  * Admin-yvirlit yvir lyftiloyvisumsóknir.
  */
 function lf_register_admin_menu() {
@@ -172,6 +213,129 @@ function lf_render_admin_page() {
             $bulk_notice_msg = $updated_n === 1
                 ? '«Góðkent av felagi» er strikað á einari røð.'
                 : sprintf('«Góðkent av felagi» er strikað á %d røðum.', $updated_n);
+        } elseif ($bulk_action === 'regenerate_pdf') {
+            $ok_pdf = 0;
+            $fail_pdf = 0;
+            foreach ($bulk_ids as $bid) {
+                $brow = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d LIMIT 1", $bid));
+                if (!$brow) {
+                    continue;
+                }
+                $bdata = maybe_unserialize($brow->data);
+                if (!is_array($bdata)) {
+                    $bdata = [];
+                }
+                if (!empty($brow->pdf_path) && is_string($brow->pdf_path) && file_exists($brow->pdf_path)) {
+                    @unlink($brow->pdf_path);
+                }
+                $new_pdf = function_exists('lf_generate_pdf') ? lf_generate_pdf($bdata) : null;
+                if ($new_pdf && file_exists($new_pdf)) {
+                    $wpdb->update($table_name, ['pdf_path' => $new_pdf], ['id' => $bid], ['%s'], ['%d']);
+                    $ok_pdf++;
+                } else {
+                    $fail_pdf++;
+                }
+            }
+            $bulk_notice_msg = sprintf('PDF er endurgerð á %d røðum.', $ok_pdf)
+                . ($fail_pdf > 0 ? ' ' . sprintf('%d miseydnaðust.', $fail_pdf) : '');
+        } elseif ($bulk_action === 'resend_pdf') {
+            $ok_mail = 0;
+            $fail_mail = 0;
+            foreach ($bulk_ids as $bid) {
+                $brow = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d LIMIT 1", $bid));
+                if (!$brow) {
+                    continue;
+                }
+                $bdata = maybe_unserialize($brow->data);
+                if (!is_array($bdata)) {
+                    $bdata = [];
+                }
+                $recipients = lf_admin_bulk_pdf_recipient_emails($bdata);
+                if (!function_exists('lf_admin_resend_pdf_to_recipients')) {
+                    $fail_mail++;
+                    continue;
+                }
+                $res = lf_admin_resend_pdf_to_recipients($bdata, $recipients, '');
+                if (!empty($res['pdf_path'])) {
+                    $wpdb->update(
+                        $table_name,
+                        ['pdf_path' => $res['pdf_path']],
+                        ['id' => $bid],
+                        ['%s'],
+                        ['%d']
+                    );
+                }
+                if (!empty($res['sent_any'])) {
+                    $ok_mail++;
+                } else {
+                    $fail_mail++;
+                }
+            }
+            $bulk_notice_msg = sprintf(
+                'PDF er send aftur hjá minst einum mótaki á %d umsóknum.%s',
+                $ok_mail,
+                $fail_mail > 0 ? ' ' . sprintf('Kundi ikki senda hjá %d (kanna teldupost / mótakarar).', $fail_mail) : ''
+            );
+        } elseif ($bulk_action === 'resend_link_club') {
+            $ok_lc = 0;
+            $fail_lc = 0;
+            foreach ($bulk_ids as $bid) {
+                $brow = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d LIMIT 1", $bid));
+                if (!$brow) {
+                    continue;
+                }
+                $bdata = maybe_unserialize($brow->data);
+                if (!is_array($bdata)) {
+                    $bdata = [];
+                }
+                if (lf_admin_send_club_approval_link($brow, $bdata)) {
+                    $ok_lc++;
+                } else {
+                    $fail_lc++;
+                }
+            }
+            $bulk_notice_msg = sprintf('Felags-leinkjan er send til %d umsókna.', $ok_lc)
+                . ($fail_lc > 0 ? ' ' . sprintf('%d miseydnaðust.', $fail_lc) : '');
+        } elseif ($bulk_action === 'resend_link_guardian') {
+            $ok_v = 0;
+            $fail_v = 0;
+            foreach ($bulk_ids as $bid) {
+                $brow = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d LIMIT 1", $bid));
+                if (!$brow) {
+                    continue;
+                }
+                $bdata = maybe_unserialize($brow->data);
+                if (!is_array($bdata)) {
+                    $bdata = [];
+                }
+                if (lf_admin_send_guardian_approval_link($brow, $bdata)) {
+                    $ok_v++;
+                } else {
+                    $fail_v++;
+                }
+            }
+            $bulk_notice_msg = sprintf('Verju-leinkjan er send til %d umsókna.', $ok_v)
+                . ($fail_v > 0 ? ' ' . sprintf('%d miseydnaðust (ikki kravt ella manglar teldupostur hjá verja).', $fail_v) : '');
+        } elseif ($bulk_action === 'resend_link_fss') {
+            $ok_f = 0;
+            $fail_f = 0;
+            foreach ($bulk_ids as $bid) {
+                $brow = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d LIMIT 1", $bid));
+                if (!$brow) {
+                    continue;
+                }
+                $bdata = maybe_unserialize($brow->data);
+                if (!is_array($bdata)) {
+                    $bdata = [];
+                }
+                if (lf_request_fss_approval($brow, $bdata)) {
+                    $ok_f++;
+                } else {
+                    $fail_f++;
+                }
+            }
+            $bulk_notice_msg = sprintf('FSS-góðkenning er biðjað/send til lyftiloyvi hjá %d umsóknum.', $ok_f)
+                . ($fail_f > 0 ? ' ' . sprintf('%d miseydnaðust.', $fail_f) : '');
         } else {
             $bulk_notice_msg = 'Ókend handling.';
         }
@@ -667,6 +831,11 @@ function lf_render_admin_page() {
     echo '<label for="lf-bulk-action" class="screen-reader-text">Margfeldis-handling</label>';
     echo '<select name="lf_bulk_action" id="lf-bulk-action">';
     echo '<option value="">Vel handling…</option>';
+    echo '<option value="regenerate_pdf">Endurgera PDF</option>';
+    echo '<option value="resend_pdf">Send PDF aftur (FSS, felag, íðkari og verji)</option>';
+    echo '<option value="resend_link_club">Send góðkenningarleinkju til felags</option>';
+    echo '<option value="resend_link_guardian">Send góðkenningarleinkju til verja</option>';
+    echo '<option value="resend_link_fss">Send góðkenningarleinkju til FSS</option>';
     echo '<option value="clear_club_approval">Strika «góðkent av felagi»</option>';
     echo '<option value="delete">Strika umsóknir</option>';
     echo '</select> ';
@@ -807,9 +976,31 @@ function lf_render_admin_page() {
                 }
                 if(action==="delete"){
                     if(!confirm("Ert tú viss(ur)? Valdu umsóknir verða strikaðar og kunnu ikki endurgevnast.")){ e.preventDefault(); }
+                    return;
                 }
                 if(action==="clear_club_approval"){
                     if(!confirm("Strika «góðkent av felagi» hjá øllum valdum røðum? Har støðan er «Góðkent» ella «Bíðar (FSS)», verður hon sett til «Bíðar».")){ e.preventDefault(); }
+                    return;
+                }
+                if(action==="regenerate_pdf"){
+                    if(!confirm("Endurgera PDF fyri øll vald umsóknir? Galdu PDF-fílur á skrá verða strikaðar; nýggjar verða gjørðar.")){ e.preventDefault(); }
+                    return;
+                }
+                if(action==="resend_pdf"){
+                    if(!confirm("Senda PDF aftur til tøkar móttakarar (FSS, felag, íðkari og verji) hjá øllum valdum umsóknunum?")){ e.preventDefault(); }
+                    return;
+                }
+                if(action==="resend_link_club"){
+                    if(!confirm("Senda góðkenningarleinkju til felags (formans-teldupost) fyri øll vald umsóknir?")){ e.preventDefault(); }
+                    return;
+                }
+                if(action==="resend_link_guardian"){
+                    if(!confirm("Senda góðkenningarleinkju til verja fyri øll vald umsóknir sum krevja verju?")){ e.preventDefault(); }
+                    return;
+                }
+                if(action==="resend_link_fss"){
+                    if(!confirm("Senda ella áfrísa FSS til endaligi góðkenning hjá øllum valdum umsóknunum? Støðan kann verða «Bíðar (FSS)».")){ e.preventDefault(); }
+                    return;
                 }
             });
             var allCb = document.getElementById("lf-bulk-select-all");
