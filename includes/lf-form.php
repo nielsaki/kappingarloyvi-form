@@ -165,18 +165,19 @@ function lf_render_form()
 
                     // Save submission data for approval step
                     $submission_data = [
-                        'name'           => $name,
-                        'birthdate'      => $birthdate,
-                        'address'        => $address,
-                        'city'           => $city,
-                        'phone'          => $phone,
-                        'email'          => $email,
-                        'club'           => $club,
-                        'date'           => $date,
-                        'is_minor'       => $is_minor,
-                        'guardian_name'  => $guardian_name,
-                        'guardian_email' => $guardian_email,
-                        'guardian_phone' => $guardian_phone,
+                        'name'              => $name,
+                        'birthdate'         => $birthdate,
+                        'address'           => $address,
+                        'city'              => $city,
+                        'phone'             => $phone,
+                        'email'             => $email,
+                        'club'              => $club,
+                        'date'              => $date,
+                        'is_minor'          => $is_minor,
+                        'guardian_name'     => $guardian_name,
+                        'guardian_email'    => $guardian_email,
+                        'guardian_phone'    => $guardian_phone,
+                        'consent_timestamp' => current_time('Y-m-d H:i:s'),
                     ];
 
                     // (PDF verður gjørd seinni, ikki her)

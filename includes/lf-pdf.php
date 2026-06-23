@@ -77,6 +77,12 @@ function lf_generate_pdf($data)
     $club_approved_date    = $data['club_approved_date'] ?? '';
     $guardian_approved_date = $data['guardian_approved_date'] ?? '';
     $fss_approved_date     = $data['fss_approved_date'] ?? '';
+    $consent_timestamp_raw = $data['consent_timestamp'] ?? '';
+    $consent_ts_display    = '';
+    if ($consent_timestamp_raw !== '') {
+        $ts = DateTime::createFromFormat('Y-m-d H:i:s', $consent_timestamp_raw);
+        $consent_ts_display = $ts ? $ts->format('d.m.Y H:i') : $consent_timestamp_raw;
+    }
 
     // LOGO for PDF: Dompdf supports only raster (PNG/JPG), not SVG. Prefer local files
     // in assets/logos/ (fss.png, adf.png, isf.png) or lf_get_logo_urls_for_pdf().
@@ -146,6 +152,23 @@ function lf_generate_pdf($data)
     $html .= '<div class="section">';
     $html .= '<h2>Dopingváttan</h2>';
     $html .= '<p style="font-size:10px; line-height:1.25; margin:0;">' . (function_exists('lf_get_doping_text') ? lf_get_doping_text() : '') . '</p>';
+    $html .= '</div>';
+
+    $html .= '<div class="section">';
+    $html .= '<h2>Váttanir</h2>';
+    $html .= '<table style="font-size:9.5px;">';
+    $html .= '<tr style="background:#f0f0f0;"><th style="width:78%;">Váttan</th><th>Dagfest</th></tr>';
+    $consent_labels = [
+        'Eg játti at lata meg verða kannaðan til doping-roynd',
+        'Eg játti at rinda allar útreiðslur FSS hevur havt av mær síðstu 12 mánaðirnar aftur, um eg verið testaður positivt í einari doping-roynd',
+        'Eg játti at fylgja anti-doping reglugerð hjá viðkomandi altjóða sambondum',
+        'Eg játti at Føroya Styrkisamband kann goyma eitt eintak av kappingarloyvinum',
+        'Eg játtið, at um eg skal umboða Føroyar og Merkið til eina kapping, so havi eg tikið anti-doping skeiðið, "ANTIDOPING 1 – FOR IDRÆTSUDØVERE". Og verið eg biðin um at skráseta Whereabouts. So játti eg eisini at taka skeiðið "WHEREABOUTS - EN GUIDE FOR ATLETER".',
+    ];
+    foreach ($consent_labels as $label) {
+        $html .= '<tr><td>&#x2611; ' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</td><td style="white-space:nowrap;color:#555;">' . htmlspecialchars($consent_ts_display, ENT_QUOTES, 'UTF-8') . '</td></tr>';
+    }
+    $html .= '</table>';
     $html .= '</div>';
 
     if (!empty($approved_by) || !empty($guardian_approved_by) || !empty($fss_approved_by)) {

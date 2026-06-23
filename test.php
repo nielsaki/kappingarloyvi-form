@@ -534,6 +534,7 @@ function lf_render_form_test(): string
                     'city' => $city, 'phone' => $phone, 'email' => $email, 'club' => $club,
                     'date' => $date, 'is_minor' => $is_minor, 'guardian_name' => $guardian_name,
                     'guardian_email' => $guardian_email, 'guardian_phone' => $guardian_phone,
+                    'consent_timestamp' => date('Y-m-d H:i:s'),
                 ];
 
                 $token          = wp_generate_password(32, false, false);
