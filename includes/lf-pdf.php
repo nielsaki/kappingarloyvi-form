@@ -81,7 +81,12 @@ function lf_generate_pdf($data, $is_test = false)
     $consent_ts_display    = '';
     if ($consent_timestamp_raw !== '') {
         $ts = DateTime::createFromFormat('Y-m-d H:i:s', $consent_timestamp_raw);
-        $consent_ts_display = $ts ? $ts->format('d.m.Y H:i') : $consent_timestamp_raw;
+        if ($ts) {
+            $consent_ts_display = $ts->format('d.m.Y H:i');
+        } else {
+            $ts_date = DateTime::createFromFormat('Y-m-d', substr($consent_timestamp_raw, 0, 10));
+            $consent_ts_display = $ts_date ? $ts_date->format('d.m.Y') : $consent_timestamp_raw;
+        }
     }
 
     // LOGO for PDF: Dompdf supports only raster (PNG/JPG), not SVG. Prefer local files

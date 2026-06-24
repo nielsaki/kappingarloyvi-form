@@ -228,6 +228,9 @@ function lf_render_admin_page() {
                 if (!empty($brow->pdf_path) && is_string($brow->pdf_path) && file_exists($brow->pdf_path)) {
                     @unlink($brow->pdf_path);
                 }
+                if (empty($bdata['consent_timestamp']) && !empty($brow->created_at)) {
+                    $bdata['consent_timestamp'] = $brow->created_at;
+                }
                 $new_pdf = function_exists('lf_generate_pdf') ? lf_generate_pdf($bdata) : null;
                 if ($new_pdf && file_exists($new_pdf)) {
                     $wpdb->update($table_name, ['pdf_path' => $new_pdf], ['id' => $bid], ['%s'], ['%d']);
@@ -254,6 +257,9 @@ function lf_render_admin_page() {
                 if (!function_exists('lf_admin_resend_pdf_to_recipients')) {
                     $fail_mail++;
                     continue;
+                }
+                if (empty($bdata['consent_timestamp']) && !empty($brow->created_at)) {
+                    $bdata['consent_timestamp'] = $brow->created_at;
                 }
                 $res = lf_admin_resend_pdf_to_recipients($bdata, $recipients, '');
                 if (!empty($res['pdf_path'])) {
@@ -355,6 +361,9 @@ function lf_render_admin_page() {
                 $pdf_path = is_string($brow->pdf_path ?? null) ? $brow->pdf_path : '';
                 if ($regen_pdf || empty($pdf_path) || !file_exists($pdf_path)) {
                     if (!empty($pdf_path) && file_exists($pdf_path)) @unlink($pdf_path);
+                    if (empty($bdata['consent_timestamp']) && !empty($brow->created_at)) {
+                        $bdata['consent_timestamp'] = $brow->created_at;
+                    }
                     $pdf_path = function_exists('lf_generate_pdf') ? lf_generate_pdf($bdata) : null;
                     if ($pdf_path && file_exists($pdf_path)) {
                         $wpdb->update($table_name, ['pdf_path' => $pdf_path], ['id' => $bid], ['%s'], ['%d']);
@@ -520,6 +529,9 @@ function lf_render_admin_page() {
 
                 $recipient_list = array_values(array_unique(array_filter(array_map(function($x){ return strtolower(trim($x)); }, $recipient_list))));
 
+                if (empty($data['consent_timestamp']) && !empty($row->created_at)) {
+                    $data['consent_timestamp'] = $row->created_at;
+                }
                 $res = lf_admin_resend_pdf_to_recipients($data, $recipient_list, $explanation);
 
                 // Store pdf path if generated
@@ -576,6 +588,9 @@ function lf_render_admin_page() {
                     @unlink($row->pdf_path);
                 }
                 // Generate new PDF
+                if (empty($data['consent_timestamp']) && !empty($row->created_at)) {
+                    $data['consent_timestamp'] = $row->created_at;
+                }
                 $new_pdf = lf_generate_pdf($data);
                 if ($new_pdf && file_exists($new_pdf)) {
                     $wpdb->update($table_name, ['pdf_path' => $new_pdf], ['id' => $row->id], ['%s'], ['%d']);
