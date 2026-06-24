@@ -46,21 +46,21 @@ function lf_admin_bulk_pdf_recipient_emails(array $data): array {
 }
 
 /**
- * Admin-yvirlit yvir lyftiloyvisumsóknir.
+ * Admin-yvirlit yvir kappingarloyviumsóknir.
  */
 function lf_register_admin_menu() {
     add_menu_page(
-        'Lyftiloyvi',
-        'Lyftiloyvi',
+        'Kappingarloyvi',
+        'Kappingarloyvi',
         'manage_options',
-        'lf-lyftiloyvi',
+        'lf-kappingarloyvi',
         'lf_render_admin_page',
         'dashicons-forms',
         26
     );
 
     add_submenu_page(
-        'lf-lyftiloyvi',
+        'lf-kappingarloyvi',
         'Felagsteldupostir',
         'Felagsteldupostir',
         'manage_options',
@@ -97,7 +97,7 @@ function lf_render_club_emails_settings_page() {
 
     echo '<div class="wrap">';
     echo '<h1>Felagsteldupostir</h1>';
-    echo '<p>Set teldupost, har góðkenningarleinkjan fyri lyftiloyvi skal sendast til hvørt felag. Tómt felt brúkar sjálvgevið (sjá undir hvørjum felti).</p>';
+    echo '<p>Set teldupost, har góðkenningarleinkjan fyri kappingarloyvi skal sendast til hvørt felag. Tómt felt brúkar sjálvgevið (sjá undir hvørjum felti).</p>';
 
     echo '<form method="post" action="">';
     wp_nonce_field('lf_club_emails_save', 'lf_club_emails_nonce');
@@ -130,7 +130,7 @@ function lf_render_admin_page() {
     }
 
     global $wpdb;
-    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
     $message           = '';
     $bulk_notice_key   = 'lf_bulk_notice_' . get_current_user_id();
@@ -156,7 +156,7 @@ function lf_render_admin_page() {
         })));
 
         $redirect_args = [
-            'page'       => 'lf-lyftiloyvi',
+            'page'       => 'lf-kappingarloyvi',
             'lf_status'  => isset($_POST['lf_keep_status']) ? sanitize_text_field(wp_unslash($_POST['lf_keep_status'])) : '',
             'lf_club'    => isset($_POST['lf_keep_club']) ? sanitize_text_field(wp_unslash($_POST['lf_keep_club'])) : '',
             'lf_search'  => isset($_POST['lf_keep_search']) ? sanitize_text_field(wp_unslash($_POST['lf_keep_search'])) : '',
@@ -334,30 +334,33 @@ function lf_render_admin_page() {
                     $fail_f++;
                 }
             }
-            $bulk_notice_msg = sprintf('FSS-góðkenning er biðjað/send til lyftiloyvi hjá %d umsóknum.', $ok_f)
+            $bulk_notice_msg = sprintf('FSS-góðkenning er biðjað/send til kappingarloyvi hjá %d umsóknum.', $ok_f)
                 . ($fail_f > 0 ? ' ' . sprintf('%d miseydnaðust.', $fail_f) : '');
         } elseif ($bulk_action === 'custom_email') {
-            $custom_subject = sanitize_text_field(wp_unslash($_POST['lf_custom_subject'] ?? ''));
-            $custom_body    = sanitize_textarea_field(wp_unslash($_POST['lf_custom_body'] ?? ''));
-            $send_to        = isset($_POST['lf_custom_send_to']) ? array_map('sanitize_text_field', (array) wp_unslash($_POST['lf_custom_send_to'])) : [];
+            $custom_subject    = sanitize_text_field(wp_unslash($_POST['lf_custom_subject'] ?? ''));
+            $custom_body       = sanitize_textarea_field(wp_unslash($_POST['lf_custom_body'] ?? ''));
+            $send_to           = isset($_POST['lf_custom_send_to']) ? array_map('sanitize_text_field', (array) wp_unslash($_POST['lf_custom_send_to'])) : [];
+            $regen_pdf         = !empty($_POST['lf_custom_regen_pdf']);
             $club_chair_emails = lf_get_club_chair_emails();
-            $ok_mail = 0; $fail_mail = 0;
+            $sent_log = []; $fail_log = [];
 
             foreach ($bulk_ids as $bid) {
                 $brow = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d LIMIT 1", $bid));
-                if (!$brow) { $fail_mail++; continue; }
+                if (!$brow) { $fail_log[] = "#$bid: fannst ikki"; continue; }
                 $bdata = maybe_unserialize($brow->data);
                 if (!is_array($bdata)) $bdata = [];
+                $bname = $bdata['name'] ?? "#{$bid}";
 
-                // Regenerate PDF
-                if (!empty($brow->pdf_path) && is_string($brow->pdf_path) && file_exists($brow->pdf_path)) {
-                    @unlink($brow->pdf_path);
+                // Use existing PDF unless regeneration is requested or no PDF exists
+                $pdf_path = is_string($brow->pdf_path ?? null) ? $brow->pdf_path : '';
+                if ($regen_pdf || empty($pdf_path) || !file_exists($pdf_path)) {
+                    if (!empty($pdf_path) && file_exists($pdf_path)) @unlink($pdf_path);
+                    $pdf_path = function_exists('lf_generate_pdf') ? lf_generate_pdf($bdata) : null;
+                    if ($pdf_path && file_exists($pdf_path)) {
+                        $wpdb->update($table_name, ['pdf_path' => $pdf_path], ['id' => $bid], ['%s'], ['%d']);
+                    }
                 }
-                $new_pdf = function_exists('lf_generate_pdf') ? lf_generate_pdf($bdata) : null;
-                if ($new_pdf && file_exists($new_pdf)) {
-                    $wpdb->update($table_name, ['pdf_path' => $new_pdf], ['id' => $bid], ['%s'], ['%d']);
-                }
-                $attachments = (!empty($new_pdf) && file_exists($new_pdf)) ? [$new_pdf] : [];
+                $attachments = (!empty($pdf_path) && file_exists($pdf_path)) ? [$pdf_path] : [];
 
                 // Build recipient list
                 $recipients = [];
@@ -368,6 +371,7 @@ function lf_render_admin_page() {
                 if (in_array('club', $send_to, true)) {
                     $club_e = $club_chair_emails[$bdata['club'] ?? ''] ?? '';
                     if ($club_e) $recipients[] = $club_e;
+                    else error_log("LF custom_email: ongin teldupostur fyri felag «" . ($bdata['club'] ?? '') . "» (umsókn #{$bid})");
                 }
                 if (in_array('athlete', $send_to, true) && !empty($bdata['email'])) {
                     $recipients[] = $bdata['email'];
@@ -379,18 +383,40 @@ function lf_render_admin_page() {
                     return strtolower(trim((string) $x));
                 }, $recipients))));
 
-                if (empty($recipients)) { $fail_mail++; continue; }
-
-                $sent_any = false;
-                foreach ($recipients as $to) {
-                    if (!is_email($to)) continue;
-                    if (wp_mail($to, $custom_subject, $custom_body, [], $attachments)) $sent_any = true;
+                if (empty($recipients)) {
+                    $fail_log[] = "{$bname}: ongin galdandi móttakari";
+                    error_log("LF custom_email: no valid recipients for submission #{$bid} ({$bname})");
+                    continue;
                 }
-                if ($sent_any) $ok_mail++; else $fail_mail++;
+
+                $row_ok = []; $row_fail = [];
+                foreach ($recipients as $to) {
+                    if (!is_email($to)) { $row_fail[] = $to; continue; }
+                    $ok = wp_mail($to, $custom_subject, $custom_body, [], $attachments);
+                    if ($ok) { $row_ok[] = $to; }
+                    else {
+                        $row_fail[] = $to;
+                        error_log("LF custom_email: wp_mail() returned false for {$to} (umsókn #{$bid})");
+                    }
+                }
+                if (!empty($row_ok)) {
+                    $sent_log[] = "{$bname} → " . implode(', ', $row_ok);
+                }
+                if (!empty($row_fail)) {
+                    $fail_log[] = "{$bname}: miseydnaðist til " . implode(', ', $row_fail);
+                }
             }
 
-            $bulk_notice_msg = sprintf('%d umsóknir: teldupostur sendur.', $ok_mail)
-                . ($fail_mail > 0 ? ' ' . sprintf('%d miseydnaðust (kanna móttakarar / teldupost-skipan).', $fail_mail) : '');
+            $bulk_notice_msg = '';
+            if (!empty($sent_log)) {
+                $bulk_notice_msg .= 'Sent: ' . implode(' | ', $sent_log) . '.';
+            }
+            if (!empty($fail_log)) {
+                $bulk_notice_msg .= ($bulk_notice_msg ? ' ' : '') . 'Miseydnaðist: ' . implode(' | ', $fail_log) . '. Kanna teldupost-skipan og felagsteldupostir.';
+            }
+            if ($bulk_notice_msg === '') {
+                $bulk_notice_msg = 'Ongar umsóknir funnar.';
+            }
         } else {
             $bulk_notice_msg = 'Ókend handling.';
         }
@@ -408,7 +434,7 @@ function lf_render_admin_page() {
         if ($edit_id > 0) {
             $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table_name} WHERE id = %d LIMIT 1", $edit_id));
             if (!$row) {
-                echo '<div class="wrap"><h1>Lyftiloyvi</h1><p>Umsókn fannst ikki.</p></div>';
+                echo '<div class="wrap"><h1>Kappingarloyvi</h1><p>Umsókn fannst ikki.</p></div>';
                 return;
             }
 
@@ -568,7 +594,7 @@ function lf_render_admin_page() {
 
             echo '<div class="wrap">';
             echo '<h1>Rætta umsókn #' . intval($row->id) . '</h1>';
-            echo '<p><a href="' . esc_url(admin_url('admin.php?page=lf-lyftiloyvi')) . '">← Aftur til yvirlit</a></p>';
+            echo '<p><a href="' . esc_url(admin_url('admin.php?page=lf-kappingarloyvi')) . '">← Aftur til yvirlit</a></p>';
             if (!empty($message)) {
                 echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($message) . '</p></div>';
             }
@@ -723,7 +749,7 @@ function lf_render_admin_page() {
             $msg = $deleted ? 'Umsókn nr. ' . $delete_id . ' er strikað.' : 'Eitt mistak hentist við at strika umsóknina.';
             set_transient('lf_bulk_notice_' . get_current_user_id(), $msg, 60);
         }
-        wp_safe_redirect(admin_url('admin.php?page=lf-lyftiloyvi'));
+        wp_safe_redirect(admin_url('admin.php?page=lf-kappingarloyvi'));
         exit;
     }
 
@@ -742,13 +768,13 @@ function lf_render_admin_page() {
     }
 
     echo '<div class="wrap">';
-    echo '<h1>Lyftiloyvisumsóknir</h1>';
+    echo '<h1>Kappingarloyviumsóknir</h1>';
 
     if (!empty($message)) {
         echo '<div class="notice notice-success is-dismissible"><p>' . esc_html($message) . '</p></div>';
     }
 
-    echo '<p>Her sært tú seinastu umsóknirnar, sum eru sendar gjøgnum lyftiloyvisformið.</p>';
+    echo '<p>Her sært tú seinastu umsóknirnar, sum eru sendar gjøgnum kappingarloyviformið.</p>';
 
     // Filter / search controls
     $status_filter = isset($_GET['lf_status']) ? sanitize_text_field(wp_unslash($_GET['lf_status'])) : '';
@@ -759,7 +785,7 @@ function lf_render_admin_page() {
     $clubs_all = function_exists('lf_get_clubs') ? lf_get_clubs() : [];
 
     echo '<form method="get" class="lf-admin-filters" style="margin:1em 0 1.5em 0;padding:8px 10px;background:#fff;border:1px solid #ccd0d4;border-radius:6px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">';
-    echo '<input type="hidden" name="page" value="lf-lyftiloyvi" />';
+    echo '<input type="hidden" name="page" value="lf-kappingarloyvi" />';
 
     // Status filter
     echo '<div>';
@@ -810,7 +836,7 @@ function lf_render_admin_page() {
 
     echo '<div>';
     echo '<button type="submit" class="button button-primary">Filtrera</button> ';
-    echo '<a href="' . esc_url(admin_url('admin.php?page=lf-lyftiloyvi')) . '" class="button">Nulstilla</a>';
+    echo '<a href="' . esc_url(admin_url('admin.php?page=lf-kappingarloyvi')) . '" class="button">Nulstilla</a>';
     echo '</div>';
 
     echo '</form>';
@@ -871,7 +897,7 @@ function lf_render_admin_page() {
         return;
     }
 
-    echo '<form method="post" class="lf-bulk-requests-form" action="' . esc_url(admin_url('admin.php?page=lf-lyftiloyvi')) . '">';
+    echo '<form method="post" class="lf-bulk-requests-form" action="' . esc_url(admin_url('admin.php?page=lf-kappingarloyvi')) . '">';
     wp_nonce_field('lf_bulk_requests', 'lf_bulk_nonce');
     echo '<input type="hidden" name="lf_keep_status" value="' . esc_attr($status_filter) . '" />';
     echo '<input type="hidden" name="lf_keep_club" value="' . esc_attr($club_filter) . '" />';
@@ -901,14 +927,15 @@ function lf_render_admin_page() {
 
     // Compose panel – shown when custom_email is selected
     echo '<div id="lf-custom-email-panel" style="display:none;margin:0 0 16px 0;padding:16px 18px;background:#fff;border:1px solid #ccd0d4;border-radius:6px;max-width:740px;">';
-    echo '<p style="margin:0 0 10px;font-weight:600;">&#x2709; Tilpassað teldupost — verður sent til valdu umsóknirnar við nýggjari PDF</p>';
+    echo '<p style="margin:0 0 10px;font-weight:600;">&#x2709; Tilpassað teldupost</p>';
     echo '<p style="margin:0 0 8px;"><strong>Send til:</strong></p>';
     echo '<label style="display:block;margin:4px 0;"><input type="checkbox" class="lf-ce-rcpt" name="lf_custom_send_to[]" value="club" checked> Felag (formans-teldupostur)</label>';
     echo '<label style="display:block;margin:4px 0;"><input type="checkbox" class="lf-ce-rcpt" name="lf_custom_send_to[]" value="athlete" checked> Íðkari</label>';
     echo '<label style="display:block;margin:4px 0;"><input type="checkbox" class="lf-ce-rcpt" name="lf_custom_send_to[]" value="guardian"> Verji (bert um undir 18 ár og verji er skrásettur)</label>';
     echo '<label style="display:block;margin:4px 0 10px;"><input type="checkbox" class="lf-ce-rcpt" name="lf_custom_send_to[]" value="fss"> FSS</label>';
+    echo '<label style="display:block;margin:4px 0 14px;"><input type="checkbox" name="lf_custom_regen_pdf" value="1"> Endurgera PDF áðrenn sending <small style="color:#666;">(lekari, sleppur nú um PDF longu er til)</small></label>';
     echo '<p style="margin:0 0 4px;"><label><strong>Evni</strong><br>';
-    echo '<input type="text" name="lf_custom_subject" id="lf-ce-subject" class="regular-text" style="width:100%;max-width:620px;" value="Kappingarloyvi – tíðindir" /></label></p>';
+    echo '<input type="text" name="lf_custom_subject" id="lf-ce-subject" class="regular-text" style="width:100%;max-width:620px;" value="Kappingarloyvi" /></label></p>';
     echo '<p style="margin:0 0 12px;"><label><strong>Tekst</strong><br>';
     echo '<textarea name="lf_custom_body" id="lf-ce-body" rows="9" style="width:100%;max-width:620px;font-family:monospace;font-size:13px;"></textarea></label></p>';
     echo '<p style="display:flex;gap:10px;flex-wrap:wrap;margin:0;">';
@@ -1013,7 +1040,7 @@ function lf_render_admin_page() {
 
         // Rætta
         echo '<td>';
-        $edit_url = admin_url('admin.php?page=lf-lyftiloyvi&edit_id=' . intval($row->id));
+        $edit_url = admin_url('admin.php?page=lf-kappingarloyvi&edit_id=' . intval($row->id));
         echo '<a class="button button-small" href="' . esc_url($edit_url) . '">Rætta</a>';
         echo '</td>';
 
@@ -1029,7 +1056,7 @@ function lf_render_admin_page() {
 
     echo '</form>';
 
-    echo '<form id="lf-single-delete-form" method="post" action="' . esc_url(admin_url('admin.php?page=lf-lyftiloyvi')) . '" style="display:none;">';
+    echo '<form id="lf-single-delete-form" method="post" action="' . esc_url(admin_url('admin.php?page=lf-kappingarloyvi')) . '" style="display:none;">';
     echo '<input type="hidden" name="lf_delete_request" value="1" />';
     echo '<input type="hidden" name="lf_delete_id" id="lf-single-delete-id" value="" />';
     wp_nonce_field('lf_delete_request', 'lf_delete_nonce');
@@ -1144,7 +1171,7 @@ function lf_render_admin_page() {
 
     // Simple pagination
     $base_args = [
-        'page'      => 'lf-lyftiloyvi',
+        'page'      => 'lf-kappingarloyvi',
         'lf_status' => $status_filter,
         'lf_club'   => $club_filter,
         'lf_minor'  => $minor_filter === '1' ? '1' : '',

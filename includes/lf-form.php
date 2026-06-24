@@ -184,7 +184,7 @@ function lf_render_form()
 
                     // Goym í egnari tabell sum "pending"
                     global $wpdb;
-                    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+                    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
                     $token = wp_generate_password(32, false, false);
                     $guardian_token = ($is_minor && !empty($guardian_email)) ? wp_generate_password(32, false, false) : '';
@@ -213,7 +213,7 @@ function lf_render_form()
                     );
 
                     if ($wpdb->last_error) {
-                        error_log('Lyftiloyvi DB insert error: ' . $wpdb->last_error);
+                        error_log('Kappingarloyvi DB insert error: ' . $wpdb->last_error);
                         $output .= '<div class="lf-error">Eitt mistak hentist við at goyma umsóknina. Vinarliga royn aftur ella set teg í samband við FSS.</div>';
                         return $output;
                     }
@@ -540,7 +540,7 @@ function lf_render_form()
 }
 
 function lf_register_shortcode() {
-    add_shortcode('lyftiloyvi_form', 'lf_render_form');
+    add_shortcode('kappingarloyvi_form', 'lf_render_form');
 }
 add_action('init', 'lf_register_shortcode');
 

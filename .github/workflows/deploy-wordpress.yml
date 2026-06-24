@@ -6,8 +6,8 @@
 #    - FTP_USERNAME
 #    - FTP_PASSWORD  (or app-specific password if your host supports it)
 #    - FTP_REMOTE_DIR  (full path on the server to the plugin folder, must end with /)
-#      Example: /public_html/wp-content/plugins/lyftiloyvi-form/
-#      Or: /domains/example.fo/public_html/wp-content/plugins/lyftiloyvi-form/
+#      Example: /public_html/wp-content/plugins/kappingarloyvi-form/
+#      Or: /domains/example.fo/public_html/wp-content/plugins/kappingarloyvi-form/
 #
 # 3. Adjust "branches" below if you use a different default branch.
 #

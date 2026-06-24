@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
 // DB-setup (tabell og schema trygging)
 function lf_install_table() {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
     $charset_collate = $wpdb->get_charset_collate();
 
     $sql = "CREATE TABLE {$table_name} (
@@ -34,9 +34,23 @@ function lf_install_table() {
 
 register_activation_hook(__FILE__, 'lf_install_table');
 
+// Rename the old table (lf_lyftiloyvi_requests → lf_kappingarloyvi_requests) automatically.
+// Runs once on first load after the plugin update. Safe to keep permanently.
+function lf_migrate_table_name() {
+    global $wpdb;
+    $old_table = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $new_table = $wpdb->prefix . 'lf_kappingarloyvi_requests';
+    $old_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $old_table));
+    $new_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $new_table));
+    if ($old_exists === $old_table && $new_exists !== $new_table) {
+        $wpdb->query("RENAME TABLE `{$old_table}` TO `{$new_table}`");
+    }
+}
+add_action('plugins_loaded', 'lf_migrate_table_name', 0);
+
 function lf_ensure_table_exists() {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
     $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name));
     if ($exists !== $table_name) {
@@ -47,7 +61,7 @@ add_action('plugins_loaded', 'lf_ensure_table_exists');
 
 function lf_ensure_table_schema() {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
     $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name));
     if ($exists !== $table_name) {

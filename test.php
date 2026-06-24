@@ -193,7 +193,7 @@ class FakeWpdb {
     }
 
     public function get_var($query) {
-        return $this->prefix . 'lf_lyftiloyvi_requests';
+        return $this->prefix . 'lf_kappingarloyvi_requests';
     }
 }
 
@@ -258,7 +258,7 @@ if (!function_exists('__')) {
 if (!function_exists('admin_url')) {
     function admin_url($path = '') {
         // Map WordPress admin URLs to local test admin URLs
-        if (strpos($path, 'page=lf-lyftiloyvi') !== false) {
+        if (strpos($path, 'page=lf-kappingarloyvi') !== false) {
             $extra = '';
             if (preg_match('/edit_id=(\d+)/', $path, $m)) $extra .= '&edit_id=' . $m[1];
             return '/?lf_admin=1' . $extra;
@@ -637,7 +637,7 @@ function lf_render_form_test(): string
                 $guardian_token = ($is_minor && !empty($guardian_email)) ? wp_generate_password(32, false, false) : '';
                 $fss_token      = wp_generate_password(32, false, false);
 
-                $wpdb->insert($wpdb->prefix . 'lf_lyftiloyvi_requests', [
+                $wpdb->insert($wpdb->prefix . 'lf_kappingarloyvi_requests', [
                     'token'          => $token,
                     'guardian_token' => $guardian_token,
                     'fss_token'      => $fss_token,
@@ -831,7 +831,7 @@ if (isset($_GET['lf_admin'])) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lf_admin_delete_id'])) {
         $del_id = intval($_POST['lf_admin_delete_id']);
         if ($del_id > 0) {
-            $wpdb->delete($wpdb->prefix . 'lf_lyftiloyvi_requests', ['id' => $del_id]);
+            $wpdb->delete($wpdb->prefix . 'lf_kappingarloyvi_requests', ['id' => $del_id]);
         }
         header('Location: /?lf_admin=1');
         exit;

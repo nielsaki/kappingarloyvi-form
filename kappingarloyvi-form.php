@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Lyftiloyvi Form
- * Description: Online-Form til lyftiloyvi, sum sendir teldupost til FSS og felagið.
+ * Plugin Name: Kappingarloyvi Form
+ * Description: Online-Form til kappingarloyvi, sum sendir teldupost til FSS og felagið.
  * Version: 1.2.4
  * Author: Niels Áki Mørk
  */

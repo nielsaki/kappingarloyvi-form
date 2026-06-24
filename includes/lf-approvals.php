@@ -46,7 +46,7 @@ function lf_build_application_summary_html($data) {
 
 function lf_request_fss_approval($row, $data) {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
     $name = $data['name'] ?? '';
     $club = $data['club'] ?? '';
@@ -81,7 +81,7 @@ function lf_request_fss_approval($row, $data) {
  */
 function lf_admin_send_club_approval_link($row, $data) {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
     $name  = $data['name'] ?? '';
     $club  = $data['club'] ?? '';
@@ -141,7 +141,7 @@ function lf_admin_send_club_approval_link($row, $data) {
  */
 function lf_admin_send_guardian_approval_link($row, $data) {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
     $is_minor       = !empty($data['is_minor']);
     $name           = $data['name'] ?? '';
@@ -242,7 +242,7 @@ function lf_send_denial_notifications($data, $role_label, $denied_by, $reason) {
 
 function lf_mark_denied($row, $data, $role_label, $denied_by, $reason) {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
     $data['denied'] = true;
     $data['denied_role'] = $role_label;
@@ -267,7 +267,7 @@ function lf_mark_denied($row, $data, $role_label, $denied_by, $reason) {
 
 function lf_finalize_approval($row, $data) {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
     // Safety: only finalize when all required approvals exist
     $is_minor_check = !empty($data['is_minor']);
@@ -422,7 +422,7 @@ function lf_handle_approval() {
     }
 
     global $wpdb;
-    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
     $row = $wpdb->get_row(
         $wpdb->prepare(
@@ -547,7 +547,7 @@ function lf_handle_guardian_approval() {
     }
 
     global $wpdb;
-    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
     $row = $wpdb->get_row(
         $wpdb->prepare(
@@ -678,7 +678,7 @@ function lf_handle_fss_approval() {
     }
 
     global $wpdb;
-    $table_name = $wpdb->prefix . 'lf_lyftiloyvi_requests';
+    $table_name = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
     $row = $wpdb->get_row(
         $wpdb->prepare(
