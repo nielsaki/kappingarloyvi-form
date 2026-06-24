@@ -3,7 +3,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-
+ 
 /**
  * Teldupostar til margfeldis «send PDF aftur»: FSS, formans-mail hjá felagnum,
  * íðkari og verji (bert um undir 18 ár og galdandi teldupostur hjá verja).
