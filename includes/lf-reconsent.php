@@ -67,7 +67,7 @@ function lf_trigger_reconsent($row, $data) {
         $row->id
     ));
 
-    // ── Send emails ───────────────────────────────────────────────────────
+    // ── Send email to athlete only — club/guardian/FSS notified after athlete submits ──
     $name  = $data['name'] ?? '';
     $club  = $data['club'] ?? '';
     $email = $data['email'] ?? '';
@@ -78,52 +78,15 @@ function lf_trigger_reconsent($row, $data) {
     if ($club) $subject_base .= ' (' . $club . ')';
 
     $athlete_link = add_query_arg('lf_reconsent', rawurlencode($athlete_token), $site);
-    $club_link    = add_query_arg('lf_reconsent', rawurlencode($club_token), $site);
-    $fss_link     = add_query_arg('lf_reconsent', rawurlencode($fss_token), $site);
 
-    // Athlete
     if ($email && is_email($email)) {
         $body  = "Góðan dag,\n\n";
         $body .= "Skilmálarnir fyri kappingarloyvi eru broyttir. Tú verður biðin/ur um at lesa og staðfesta aftur.\n\n";
         $body .= "Upplýsingarnar í forminum eru fyritfyltar – rætta tær, um nakað er broytt.\n\n";
         $body .= "Klikk hér at staðfesta:\n{$athlete_link}\n\n";
+        $body .= "Eftir at tú hevur staðfest, fær felagið (og verji, um tað er neyðugt) ein teldupost at góðkenna.\n\n";
         $body .= "Sent frá: {$site}\n";
         wp_mail($email, $subject_base, $body);
-    }
-
-    // Club chair
-    $club_chair_emails = function_exists('lf_get_club_chair_emails') ? lf_get_club_chair_emails() : [];
-    $club_email = $club_chair_emails[$club] ?? '';
-    if (!$club_email) {
-        $club_email = function_exists('lf_get_fss_email') ? lf_get_fss_email() : '';
-    }
-    if ($club_email && is_email($club_email)) {
-        $body  = "Góðan dag,\n\n";
-        $body .= "Skilmálarnir fyri kappingarloyvi eru broyttir. Felagið verður biðin/ur um at lesa og góðkenna aftur.\n\n";
-        $body .= "Íðkari: {$name}\nFelag: {$club}\n\n";
-        $body .= "Klikk hér at góðkenna:\n{$club_link}\n\n";
-        $body .= "Sent frá: {$site}\n";
-        wp_mail($club_email, $subject_base, $body);
-    }
-
-    // Guardian
-    if ($guardian_token && !empty($guardian_email) && is_email($guardian_email)) {
-        $guardian_link = add_query_arg('lf_reconsent', rawurlencode($guardian_token), $site);
-        $body  = "Góðan dag,\n\n";
-        $body .= "Skilmálarnir fyri kappingarloyvi fyri {$name} eru broyttir. Tú verður biðin/ur um at lesa og góðkenna aftur sum verji.\n\n";
-        $body .= "Klikk hér at góðkenna:\n{$guardian_link}\n\n";
-        $body .= "Sent frá: {$site}\n";
-        wp_mail($guardian_email, $subject_base, $body);
-    }
-
-    // FSS
-    $fss_email = function_exists('lf_get_fss_email') ? lf_get_fss_email() : '';
-    if ($fss_email && is_email($fss_email)) {
-        $body  = "Góðan dag,\n\n";
-        $body .= "Kappingarloyvi fyri {$name} ({$club}) krevur nýggja góðkenning frá FSS (skilmálar eru broyttir).\n\n";
-        $body .= "Klikk hér at góðkenna:\n{$fss_link}\n\n";
-        $body .= "Sent frá: {$site}\n";
-        wp_mail($fss_email, $subject_base, $body);
     }
 
     return true;
@@ -145,34 +108,96 @@ function lf_find_reconsent_row($token) {
     ));
 }
 
-// ─── Completion check ─────────────────────────────────────────────────────
+// ─── Sequential notification helpers ──────────────────────────────────────
 
 /**
- * After any party submits, re-fetch the row and check if all required
- * parties are done. If so, generate a new PDF and send it to everyone.
+ * Called after athlete submits. Sends emails to club and guardian (if minor).
  */
-function lf_reconsent_maybe_complete($row) {
+function lf_reconsent_notify_club_guardian($row, $data) {
+    $name           = $data['name'] ?? '';
+    $club           = $data['club'] ?? '';
+    $guardian_email = $data['guardian_email'] ?? '';
+    $is_minor       = !empty($data['is_minor']);
+    $site           = get_site_url();
+
+    $subject = 'Nýggjar skilmálar – kappingarloyvi';
+    if ($name) $subject .= ': ' . $name;
+    if ($club) $subject .= ' (' . $club . ')';
+
+    // Club
+    if (!empty($row->reconsent_club_token)) {
+        $club_link         = add_query_arg('lf_reconsent', rawurlencode($row->reconsent_club_token), $site);
+        $club_chair_emails = function_exists('lf_get_club_chair_emails') ? lf_get_club_chair_emails() : [];
+        $club_email        = $club_chair_emails[$club] ?? '';
+        if (!$club_email) {
+            $club_email = function_exists('lf_get_fss_email') ? lf_get_fss_email() : '';
+        }
+        if ($club_email && is_email($club_email)) {
+            $body  = "Góðan dag,\n\n";
+            $body .= "Íðkari {$name} hevur staðfest nýggju skilmálana fyri kappingarloyvi. Felagið verður nú biðin/ur um at góðkenna umsóknina.\n\n";
+            $body .= "Klikk hér at góðkenna:\n{$club_link}\n\n";
+            $body .= "Sent frá: {$site}\n";
+            wp_mail($club_email, $subject, $body);
+        }
+    }
+
+    // Guardian (only if minor)
+    if ($is_minor && !empty($row->reconsent_guardian_token) && $guardian_email && is_email($guardian_email)) {
+        $guardian_link = add_query_arg('lf_reconsent', rawurlencode($row->reconsent_guardian_token), $site);
+        $body  = "Góðan dag,\n\n";
+        $body .= "Íðkari {$name} hevur staðfest nýggju skilmálana fyri kappingarloyvi. Tú verður nú biðin/ur um at góðkenna sum verji.\n\n";
+        $body .= "Klikk hér at góðkenna:\n{$guardian_link}\n\n";
+        $body .= "Sent frá: {$site}\n";
+        wp_mail($guardian_email, $subject, $body);
+    }
+}
+
+/**
+ * Called after club or guardian submits. Sends FSS email when club + guardian (if required) are both done.
+ */
+function lf_reconsent_maybe_notify_fss($row, $data) {
     global $wpdb;
     $table = $wpdb->prefix . 'lf_kappingarloyvi_requests';
 
     $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", $row->id));
-    if (!$row || $row->reconsent_status !== 'pending') return false;
+    if (!$row || $row->reconsent_status !== 'pending') return;
 
-    $data     = maybe_unserialize($row->data);
-    if (!is_array($data)) return false;
-    $is_minor = !empty($data['is_minor']);
-
+    $is_minor     = !empty($data['is_minor']);
     $athlete_done  = !empty($row->reconsent_athlete_at);
     $club_done     = !empty($row->reconsent_club_at);
-    // Guardian only required when minor AND a guardian token was issued
-    $guardian_done = !$is_minor || !empty($row->reconsent_guardian_at) || empty($row->reconsent_guardian_token);
-    $fss_done      = !empty($row->reconsent_fss_at);
+    $guardian_done = !$is_minor || empty($row->reconsent_guardian_token) || !empty($row->reconsent_guardian_at);
 
-    if (!($athlete_done && $club_done && $guardian_done && $fss_done)) {
-        return false;
+    if (!($athlete_done && $club_done && $guardian_done)) return;
+    if (empty($row->reconsent_fss_token)) return;
+
+    $name  = $data['name'] ?? '';
+    $club  = $data['club'] ?? '';
+    $site  = get_site_url();
+
+    $subject = 'Nýggjar skilmálar – kappingarloyvi';
+    if ($name) $subject .= ': ' . $name;
+    if ($club) $subject .= ' (' . $club . ')';
+
+    $fss_link  = add_query_arg('lf_reconsent', rawurlencode($row->reconsent_fss_token), $site);
+    $fss_email = function_exists('lf_get_fss_email') ? lf_get_fss_email() : '';
+
+    if ($fss_email && is_email($fss_email)) {
+        $body  = "Góðan dag,\n\n";
+        $body .= "Kappingarloyvi fyri {$name} ({$club}) krevur endaliga góðkenning frá FSS. Íðkarin og felagið hava staðfest nýggju skilmálana.\n\n";
+        $body .= "Klikk hér at góðkenna:\n{$fss_link}\n\n";
+        $body .= "Eftir góðkenning verður ein nýggj PDF sent til allar partar.\n\n";
+        $body .= "Sent frá: {$site}\n";
+        wp_mail($fss_email, $subject, $body);
     }
+}
 
-    // Generate new PDF
+/**
+ * Called after FSS submits. Generates new PDF and sends it to everyone.
+ */
+function lf_reconsent_finalize($row, $data) {
+    global $wpdb;
+    $table = $wpdb->prefix . 'lf_kappingarloyvi_requests';
+
     $pdf_path = function_exists('lf_generate_pdf') ? lf_generate_pdf($data) : null;
 
     $wpdb->query($wpdb->prepare(
@@ -191,14 +216,13 @@ function lf_reconsent_maybe_complete($row) {
         $row->id
     ));
 
-    // Send final PDF to all parties
-    $attachments = (!empty($pdf_path) && file_exists($pdf_path)) ? [$pdf_path] : [];
+    $attachments    = (!empty($pdf_path) && file_exists($pdf_path)) ? [$pdf_path] : [];
     $name           = $data['name'] ?? '';
     $club           = $data['club'] ?? '';
     $email          = $data['email'] ?? '';
     $guardian_email = $data['guardian_email'] ?? '';
 
-    $subj  = 'Kappingarloyvi staðfest (nýggjar skilmálar)';
+    $subj = 'Kappingarloyvi staðfest (nýggjar skilmálar)';
     if ($name) $subj .= ': ' . $name;
     if ($club) $subj .= ' (' . $club . ')';
 
@@ -575,18 +599,11 @@ function lf_reconsent_form_club($row, $data, $token, $url, $status, $consent, $c
     $h  = $css . '<div class="rc-wrap">';
     $h .= '<form class="rc-card" method="post" action="' . $url . '">';
     $h .= '<h1>Góðkenning av kappingarloyvi – nýggjar skilmálar (felag)</h1>';
-    $h .= '<div class="rc-notice">Skilmálarnir fyri kappingarloyvi eru broyttir. Felagið verður biðin/ur um at góðkenna aftur fyri <strong>' . $name . '</strong>.</div>';
+    $h .= '<div class="rc-notice">Skilmálarnir fyri kappingarloyvi eru broyttir. <strong>' . $name . '</strong> hevur staðfest nýggju skilmálana. Felagið verður biðin/ur um at góðkenna umsóknina.</div>';
     $h .= $status;
     $h .= '<h2>Umsókn</h2>';
     $h .= lf_reconsent_summary_block($data);
-
-    $h .= '<h2>Váttanir (ítróttarmaðurin játti)</h2>';
-    $h .= '<p style="font-size:.87rem;color:#555;margin-top:0;">Felagið staðfestir at hava kynnt sær nýggju skilmálana, sum íðkarinn játtar:</p>';
-    $h .= '<ul class="rc-consent">';
-    foreach ($consent as $i => $label) {
-        $h .= '<li><input type="checkbox" name="consent[]" value="' . $i . '" required> <span>' . esc_html($label) . '</span></li>';
-    }
-    $h .= '</ul>';
+    $h .= '<p>Felagið staðfestir at hava kynnt sær umsóknina og at nýggju skilmálarnir eru í lagi.</p>';
 
     $h .= '<div class="rc-field"><label>Tín navn (góðkennari hjá felagnum) *<input type="text" name="approved_by" value="' . esc_attr($data['approved_by'] ?? '') . '" required placeholder="Fulla navn"></label></div>';
 
@@ -604,7 +621,7 @@ function lf_reconsent_form_guardian($row, $data, $token, $url, $status, $consent
     $h  = $css . '<div class="rc-wrap">';
     $h .= '<form class="rc-card" method="post" action="' . $url . '">';
     $h .= '<h1>Góðkenning av kappingarloyvi – nýggjar skilmálar (verji)</h1>';
-    $h .= '<div class="rc-notice">Skilmálarnir eru broyttir. Tú verður biðin/ur um at staðfesta aftur sum verji hjá <strong>' . $name . '</strong>.</div>';
+    $h .= '<div class="rc-notice">Skilmálarnir eru broyttir. <strong>' . $name . '</strong> hevur staðfest nýggju skilmálana. Tú verður biðin/ur um at góðkenna sum verji.</div>';
     $h .= $status;
     $h .= '<h2>Umsókn</h2>';
     $h .= lf_reconsent_summary_block($data);
@@ -615,13 +632,6 @@ function lf_reconsent_form_guardian($row, $data, $token, $url, $status, $consent
     $h .= '<div class="rc-field"><label>Teldupostur hjá verja<input type="email" name="guardian_email" value="' . esc_attr($data['guardian_email'] ?? '') . '"></label></div>';
     $h .= '</div>';
     $h .= '<div class="rc-field"><label>Telefonnummar hjá verja<input type="text" name="guardian_phone" value="' . esc_attr($data['guardian_phone'] ?? '') . '"></label></div>';
-
-    $h .= '<h2>Váttanir</h2>';
-    $h .= '<ul class="rc-consent">';
-    foreach ($consent as $i => $label) {
-        $h .= '<li><input type="checkbox" name="consent[]" value="' . $i . '" required> <span>' . esc_html($label) . '</span></li>';
-    }
-    $h .= '</ul>';
 
     $h .= '<div class="rc-field"><label>Tín navn (verji) *<input type="text" name="guardian_approved_by" value="' . esc_attr($data['guardian_approved_by'] ?? '') . '" required placeholder="Fulla navn"></label></div>';
 
@@ -640,18 +650,10 @@ function lf_reconsent_form_fss($row, $data, $token, $url, $status, $consent, $cs
     $h  = $css . '<div class="rc-wrap">';
     $h .= '<form class="rc-card" method="post" action="' . $url . '">';
     $h .= '<h1>Endalig góðkenning – nýggjar skilmálar (FSS)</h1>';
-    $h .= '<div class="rc-notice">Kappingarloyvi fyri <strong>' . $name . '</strong> (' . $club . ') krevur nýggja góðkenning frá FSS.</div>';
+    $h .= '<div class="rc-notice">Kappingarloyvi fyri <strong>' . $name . '</strong> (' . $club . ') krevur endaliga góðkenning frá FSS. Íðkarin og felagið hava staðfest. Eftir góðkenning verður ein nýggj PDF sent til allar partar.</div>';
     $h .= $status;
     $h .= '<h2>Umsókn</h2>';
     $h .= lf_reconsent_summary_block($data);
-
-    $h .= '<h2>Váttanir (ítróttarmaðurin játti)</h2>';
-    $h .= '<p style="font-size:.87rem;color:#555;margin-top:0;">FSS staðfestir at hava kynnt sær nýggju skilmálana:</p>';
-    $h .= '<ul class="rc-consent">';
-    foreach ($consent as $i => $label) {
-        $h .= '<li><input type="checkbox" name="consent[]" value="' . $i . '" required> <span>' . esc_html($label) . '</span></li>';
-    }
-    $h .= '</ul>';
 
     $h .= '<div class="rc-field"><label>Tín navn (FSS) *<input type="text" name="fss_approved_by" value="' . esc_attr($data['fss_approved_by'] ?? '') . '" required placeholder="Fulla navn"></label></div>';
 
@@ -667,15 +669,11 @@ function lf_reconsent_form_fss($row, $data, $token, $url, $status, $consent, $cs
 
 function lf_reconsent_handle_submit($row, $data, $role, $token) {
     global $wpdb;
-    $table   = $wpdb->prefix . 'lf_kappingarloyvi_requests';
-    $css     = lf_reconsent_css();
-    $now     = current_time('mysql', 1);
-    $today   = current_time('Y-m-d');
-    $back    = esc_url(add_query_arg('lf_reconsent', rawurlencode($token), get_site_url()));
-    $consent = lf_get_consent_labels();
-    $n_boxes = count($consent);
-
-    $checked = isset($_POST['consent']) ? count((array) $_POST['consent']) : 0;
+    $table = $wpdb->prefix . 'lf_kappingarloyvi_requests';
+    $css   = lf_reconsent_css();
+    $now   = current_time('mysql', 1);
+    $today = current_time('Y-m-d');
+    $back  = esc_url(add_query_arg('lf_reconsent', rawurlencode($token), get_site_url()));
 
     switch ($role) {
 
@@ -689,7 +687,7 @@ function lf_reconsent_handle_submit($row, $data, $role, $token) {
             $club_val  = sanitize_text_field(wp_unslash($_POST['club'] ?? ''));
             $clubs     = function_exists('lf_get_clubs') ? lf_get_clubs() : [];
 
-            // Derive minor status from birthdate (no checkbox — matches original form)
+            // Derive minor status from birthdate (no checkbox)
             $is_minor = false;
             if (preg_match('/^(\d{2})\.(\d{2})\.(\d{4})$/', $birthdate, $bm)) {
                 $dob = mktime(0, 0, 0, (int)$bm[2], (int)$bm[1], (int)$bm[3]);
@@ -702,7 +700,7 @@ function lf_reconsent_handle_submit($row, $data, $role, $token) {
                 wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Villa</h1><p>Fyll út øll kravdu felt og vel eitt gilt felag.</p><p><a href="' . $back . '">← Aftur</a></p></div></div>', 'Kappingarloyvi', ['response' => 200]);
                 return;
             }
-            if ($checked < $n_boxes) {
+            if (count((array)($_POST['consent'] ?? [])) < count(lf_get_consent_labels())) {
                 wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Villa</h1><p>Tú verður at játta øllum váttanunum.</p><p><a href="' . $back . '">← Aftur</a></p></div></div>', 'Kappingarloyvi', ['response' => 200]);
                 return;
             }
@@ -729,16 +727,18 @@ function lf_reconsent_handle_submit($row, $data, $role, $token) {
                 ['data' => maybe_serialize($data), 'reconsent_athlete_at' => $now],
                 ['id' => $row->id], ['%s', '%s'], ['%d']
             );
-            break;
+
+            // Notify club + guardian (if minor) now that athlete has confirmed
+            $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$table} WHERE id = %d LIMIT 1", $row->id));
+            lf_reconsent_notify_club_guardian($row, $data);
+
+            wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Takk!</h1><p>Tú hevur staðfest. Felagið' . ($is_minor ? ' og verji' : '') . ' fær nú eitt teldupost at góðkenna.</p></div></div>', 'Kappingarloyvi', ['response' => 200]);
+            return;
 
         case 'club':
             $approved_by = sanitize_text_field(wp_unslash($_POST['approved_by'] ?? ''));
             if (!$approved_by) {
                 wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Villa</h1><p>Skriva tín navn.</p></div></div>', 'Kappingarloyvi', ['response' => 200]);
-                return;
-            }
-            if ($checked < $n_boxes) {
-                wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Villa</h1><p>Tú verður at játta øllum váttanunum.</p><p><a href="' . $back . '">← Aftur</a></p></div></div>', 'Kappingarloyvi', ['response' => 200]);
                 return;
             }
             $data['approved_by']        = $approved_by;
@@ -747,7 +747,10 @@ function lf_reconsent_handle_submit($row, $data, $role, $token) {
                 ['data' => maybe_serialize($data), 'reconsent_club_at' => $now],
                 ['id' => $row->id], ['%s', '%s'], ['%d']
             );
-            break;
+            // Notify FSS if club + guardian (if required) are both done
+            lf_reconsent_maybe_notify_fss($row, $data);
+            wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Takk!</h1><p>Felagið hevur góðkent. Umsóknin bíðar nú eftir hinum partinum/partunum.</p></div></div>', 'Kappingarloyvi', ['response' => 200]);
+            return;
 
         case 'guardian':
             $gby    = sanitize_text_field(wp_unslash($_POST['guardian_approved_by'] ?? ''));
@@ -756,10 +759,6 @@ function lf_reconsent_handle_submit($row, $data, $role, $token) {
             $gphone = sanitize_text_field(wp_unslash($_POST['guardian_phone'] ?? ''));
             if (!$gby) {
                 wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Villa</h1><p>Skriva tín navn.</p></div></div>', 'Kappingarloyvi', ['response' => 200]);
-                return;
-            }
-            if ($checked < $n_boxes) {
-                wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Villa</h1><p>Tú verður at játta øllum váttanunum.</p><p><a href="' . $back . '">← Aftur</a></p></div></div>', 'Kappingarloyvi', ['response' => 200]);
                 return;
             }
             $data['guardian_approved_by']   = $gby;
@@ -771,16 +770,15 @@ function lf_reconsent_handle_submit($row, $data, $role, $token) {
                 ['data' => maybe_serialize($data), 'reconsent_guardian_at' => $now],
                 ['id' => $row->id], ['%s', '%s'], ['%d']
             );
-            break;
+            // Notify FSS if club + guardian are both done
+            lf_reconsent_maybe_notify_fss($row, $data);
+            wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Takk!</h1><p>Tú hevur góðkent sum verji. Umsóknin bíðar nú eftir hinum partinum/partunum.</p></div></div>', 'Kappingarloyvi', ['response' => 200]);
+            return;
 
         case 'fss':
             $fby = sanitize_text_field(wp_unslash($_POST['fss_approved_by'] ?? ''));
             if (!$fby) {
                 wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Villa</h1><p>Skriva tín navn.</p></div></div>', 'Kappingarloyvi', ['response' => 200]);
-                return;
-            }
-            if ($checked < $n_boxes) {
-                wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Villa</h1><p>Tú verður at játta øllum váttanunum.</p><p><a href="' . $back . '">← Aftur</a></p></div></div>', 'Kappingarloyvi', ['response' => 200]);
                 return;
             }
             $data['fss_approved_by']   = $fby;
@@ -789,18 +787,13 @@ function lf_reconsent_handle_submit($row, $data, $role, $token) {
                 ['data' => maybe_serialize($data), 'reconsent_fss_at' => $now, 'fss_approved_at' => $now],
                 ['id' => $row->id], ['%s', '%s', '%s'], ['%d']
             );
-            break;
+            // Finalize: generate PDF and send to everyone
+            lf_reconsent_finalize($row, $data);
+            wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Takk!</h1><p>FSS hevur góðkent. Nýtt kappingarloyvi er nú sent til allar partar við PDF-skjalinum.</p></div></div>', 'Kappingarloyvi', ['response' => 200]);
+            return;
 
         default:
             wp_die(lf_reconsent_error_page($css), 'Kappingarloyvi', ['response' => 200]);
             return;
-    }
-
-    $completed = lf_reconsent_maybe_complete($row);
-
-    if ($completed) {
-        wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Takk!</h1><p>Tú hevur staðfest. Allir partar hava nú staðfest, og nýtt kappingarloyvi er sent til allar partar við PDF-skjalinum.</p></div></div>', 'Kappingarloyvi', ['response' => 200]);
-    } else {
-        wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Takk!</h1><p>Tú hevur staðfest. Kappingarloyvið bíðar nú eftir staðfestingu frá hinum partunum.</p></div></div>', 'Kappingarloyvi', ['response' => 200]);
     }
 }
