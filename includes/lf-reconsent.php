@@ -343,19 +343,47 @@ function lf_reconsent_status_block($row, $data) {
 }
 
 function lf_reconsent_summary_block($data) {
+    $is_minor = !empty($data['is_minor']);
+
     $fields = [
-        'Navn'          => $data['name'] ?? '',
-        'Føðingardagur' => $data['birthdate'] ?? '',
-        'Felag'         => $data['club'] ?? '',
-        'Teldupostur'   => $data['email'] ?? '',
-        'Galdandi frá'  => $data['date'] ?? '',
+        'Navn'                    => $data['name'] ?? '',
+        'Føðingardagur'           => $data['birthdate'] ?? '',
+        'Teldupostur'             => $data['email'] ?? '',
+        'Telefonnummar'           => $data['phone'] ?? '',
+        'Bústaður'                => $data['address'] ?? '',
+        'Býur/bygd'               => $data['city'] ?? '',
+        'Felag'                   => $data['club'] ?? '',
+        'Galdandi frá'            => $data['date'] ?? '',
     ];
+
     $html  = '<div class="rc-info"><table>';
     foreach ($fields as $k => $v) {
         if ($v === '') continue;
         $html .= '<tr><th>' . esc_html($k) . '</th><td>' . esc_html($v) . '</td></tr>';
     }
     $html .= '</table></div>';
+
+    if ($is_minor) {
+        $guardian_fields = [
+            'Navn á verja'               => $data['guardian_name'] ?? '',
+            'Teldupostur hjá verja'      => $data['guardian_email'] ?? '',
+            'Telefonnummar hjá verja'    => $data['guardian_phone'] ?? '',
+        ];
+        $html .= '<h2>Verji</h2><div class="rc-info"><table>';
+        foreach ($guardian_fields as $k => $v) {
+            if ($v === '') continue;
+            $html .= '<tr><th>' . esc_html($k) . '</th><td>' . esc_html($v) . '</td></tr>';
+        }
+        $html .= '</table></div>';
+    }
+
+    $html .= '<h2>Váttanir íðkaran játti</h2>';
+    $html .= '<ul style="margin:.4rem 0 1rem;padding-left:1.4rem;font-size:.87rem;line-height:1.5;">';
+    foreach (lf_get_consent_labels() as $label) {
+        $html .= '<li>' . esc_html($label) . '</li>';
+    }
+    $html .= '</ul>';
+
     return $html;
 }
 
