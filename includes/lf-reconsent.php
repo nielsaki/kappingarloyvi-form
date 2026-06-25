@@ -236,15 +236,51 @@ function lf_reconsent_maybe_complete($row) {
 
 function lf_reconsent_css() {
     return '<style>
+    /* ── Page ── */
     *{box-sizing:border-box;}
     body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-         background:#f0f2f5;color:#1a1a2e;margin:0;padding:1.5rem 1rem 3rem;}
-    .rc-wrap{max-width:680px;margin:0 auto;}
-    .rc-card{background:#fff;border-radius:10px;
-             box-shadow:0 4px 18px rgba(0,0,0,.08);
+         background:#f0f2f5;color:#1a1a2e;margin:0;padding:0;}
+
+    /* ── Original lf-form card (matches lf-styles.php exactly) ── */
+    .lf-form{max-width:900px;margin:2rem auto 3rem;padding:1.75rem 2.5rem 2.5rem;
+             background:#ffffff;border-radius:10px;
+             box-shadow:0 6px 18px rgba(0,0,0,.06);}
+    .lf-form-title{margin:0 0 1rem;font-size:1.4rem;font-weight:700;
+                   border-bottom:1px solid #e5e5e5;padding-bottom:.5rem;}
+    .lf-form p{margin:0 0 1rem;}
+    .lf-form label{display:block;font-weight:600;margin-bottom:.25rem;}
+    .lf-info-block{background:#f8f9fa;border-radius:6px;padding:.75rem 1rem;
+                   border:1px solid #e2e4e7;font-size:13px;line-height:1.5;}
+    .lf-guardian-block{margin-top:1rem;padding:.75rem 1rem;border-radius:6px;
+                       background:#fdfdfd;border:1px dashed #e2e4e7;}
+    .lf-row{display:flex;flex-wrap:wrap;gap:1.5rem;}
+    .lf-col{flex:1 1 0;min-width:0;}
+    .lf-form input[type=text],.lf-form input[type=email],
+    .lf-form input[type=date],.lf-form select{
+        width:100%;padding:.5em .6em;border-radius:4px;border:1px solid #ccd0d4;
+        font-size:14px;font-family:inherit;background:#fff;}
+    .lf-form input[type=text]:focus,.lf-form input[type=email]:focus,
+    .lf-form input[type=date]:focus,.lf-form select:focus{
+        outline:none;border-color:#007cba;box-shadow:0 0 0 1px #007cba33;}
+    .lf-form button[type=submit]{
+        display:inline-block;padding:.7rem 1.6rem;border-radius:4px;border:none;
+        background:#007cba;color:#fff;font-size:14px;font-weight:600;cursor:pointer;
+        transition:background .15s ease;}
+    .lf-form button[type=submit]:hover{background:#006ba1;}
+    .lf-form input[type=checkbox]{width:auto;margin-right:.4rem;}
+    .lf-consent-label{font-weight:400;font-size:13px;}
+    .lf-notice{padding:.6em .9em;margin:0 0 1rem;border-radius:4px;}
+    .lf-notice-warning{border:1px solid #f9a825;background:#fff8e1;color:#7c4a03;}
+    @media(max-width:600px){
+        .lf-form{margin:1.5rem 1rem 2.5rem;padding:1.4rem 1.4rem 2rem;}
+        .lf-row{flex-direction:column;}
+    }
+
+    /* ── Shared re-consent helpers (club / guardian / FSS forms) ── */
+    .rc-wrap{max-width:680px;margin:0 auto;padding:1.5rem 1rem 3rem;}
+    .rc-card{background:#fff;border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.08);
              padding:2rem 2.25rem 2.5rem;margin-bottom:1.5rem;}
-    .rc-card h1{margin:0 0 1rem;font-size:1.35rem;
-                border-bottom:1px solid #e8eaed;padding-bottom:.6rem;}
+    .rc-card h1{margin:0 0 1rem;font-size:1.35rem;border-bottom:1px solid #e8eaed;padding-bottom:.6rem;}
     .rc-card h2{font-size:1rem;margin:1.4rem 0 .6rem;color:#444;}
     .rc-info{background:#f7f9fb;border:1px solid #dde2e8;border-radius:6px;
              padding:.75rem 1rem;font-size:.88rem;margin-bottom:1rem;}
@@ -256,13 +292,10 @@ function lf_reconsent_css() {
     .rc-status ul{margin:.3rem 0 0;padding-left:1.2rem;}
     .rc-field{margin-bottom:1rem;}
     .rc-field label{display:block;font-weight:600;margin-bottom:.3rem;font-size:.93rem;}
-    .rc-field input[type=text],
-    .rc-field input[type=email],
-    .rc-field input[type=date],
-    .rc-field select{width:100%;padding:.5em .65em;border:1px solid #ccd0d4;
-                     border-radius:4px;font-size:.95rem;font-family:inherit;background:#fff;}
-    .rc-field input:focus,.rc-field select:focus{outline:none;border-color:#007cba;
-                                                  box-shadow:0 0 0 2px #007cba22;}
+    .rc-field input[type=text],.rc-field input[type=email],.rc-field select{
+        width:100%;padding:.5em .65em;border:1px solid #ccd0d4;border-radius:4px;
+        font-size:.95rem;font-family:inherit;background:#fff;}
+    .rc-field input:focus,.rc-field select:focus{outline:none;border-color:#007cba;box-shadow:0 0 0 2px #007cba22;}
     .rc-row{display:flex;gap:1.2rem;flex-wrap:wrap;}
     .rc-row .rc-field{flex:1 1 200px;}
     .rc-consent{list-style:none;padding:0;margin:0 0 1.2rem;}
@@ -274,8 +307,6 @@ function lf_reconsent_css() {
     .rc-btn{display:inline-block;padding:.65rem 1.6rem;border-radius:4px;border:none;
             background:#007cba;color:#fff;font-size:.95rem;font-weight:600;cursor:pointer;}
     .rc-btn:hover{background:#006ba1;}
-    .rc-minor-block{background:#f9f9fb;border:1px dashed #ccd0d4;border-radius:6px;
-                    padding:1rem 1rem .25rem;margin-top:.25rem;}
     @media(max-width:520px){.rc-card{padding:1.4rem 1.2rem 2rem;}.rc-row{flex-direction:column;}}
     </style>';
 }
@@ -394,59 +425,154 @@ function lf_reconsent_render_form($row, $data, $role, $token) {
 }
 
 function lf_reconsent_form_athlete($data, $token, $url, $status, $consent, $css) {
-    $clubs    = function_exists('lf_get_clubs') ? lf_get_clubs() : [];
-    $is_minor = !empty($data['is_minor']);
+    $clubs       = function_exists('lf_get_clubs') ? lf_get_clubs() : [];
+    $doping_html = function_exists('lf_get_doping_text') ? lf_get_doping_text() : '';
+    $add_html    = function_exists('lf_get_add_block_html') ? lf_get_add_block_html() : '';
 
-    $h  = $css . '<div class="rc-wrap">';
-    $h .= '<form class="rc-card" method="post" action="' . $url . '">';
-    $h .= '<h1>Staðfesting av kappingarloyvi – nýggjar skilmálar</h1>';
-    $h .= '<div class="rc-notice">Skilmálarnir eru broyttir. Tú verður biðin/ur um at lesa og staðfesta aftur. Upplýsingarnar eru fyritfyltar.</div>';
+    $name   = esc_attr($data['name'] ?? '');
+    $bdate  = esc_attr($data['birthdate'] ?? '');
+    $email  = esc_attr($data['email'] ?? '');
+    $phone  = esc_attr($data['phone'] ?? '');
+    $addr   = esc_attr($data['address'] ?? '');
+    $city   = esc_attr($data['city'] ?? '');
+    $club   = $data['club'] ?? '';
+    $gname  = esc_attr($data['guardian_name'] ?? '');
+    $gemail = esc_attr($data['guardian_email'] ?? '');
+    $gphone = esc_attr($data['guardian_phone'] ?? '');
+
+    // Pre-determine minor status so guardian block is visible on load if needed
+    $is_minor_init = false;
+    if ($data['birthdate'] ?? '' && preg_match('/^(\d{2})\.(\d{2})\.(\d{4})$/', $data['birthdate'], $bm)) {
+        $dob = mktime(0, 0, 0, (int)$bm[2], (int)$bm[1], (int)$bm[3]);
+        if ($dob) {
+            $is_minor_init = ((time() - $dob) / (365.25 * 86400)) < 18;
+        }
+    }
+
+    $h  = $css;
+    $h .= '<form method="post" class="lf-form" action="' . $url . '">';
+
+    $h .= '<div class="lf-notice lf-notice-warning">Skilmálarnir hjá kappingarloyvið eru broyttir. Tú verður biðin/ur um at lesa og staðfesta aftur. Upplýsingarnar eru fyritfyltar – rætta tær, um nakað er broytt.</div>';
     $h .= $status;
 
-    $h .= '<h2>Upplýsingar um íðkara</h2>';
-    $h .= '<div class="rc-row">';
-    $h .= '<div class="rc-field"><label>Fulla navn *<input type="text" name="name" value="' . esc_attr($data['name'] ?? '') . '" required></label></div>';
-    $h .= '<div class="rc-field"><label>Føðingardagur (dd.mm.áááá) *<input type="text" name="birthdate" value="' . esc_attr($data['birthdate'] ?? '') . '" required placeholder="dd.mm.áááá"></label></div>';
-    $h .= '</div><div class="rc-row">';
-    $h .= '<div class="rc-field"><label>Teldupostur *<input type="email" name="email" value="' . esc_attr($data['email'] ?? '') . '" required></label></div>';
-    $h .= '<div class="rc-field"><label>Telefonnummar<input type="text" name="phone" value="' . esc_attr($data['phone'] ?? '') . '"></label></div>';
-    $h .= '</div><div class="rc-row">';
-    $h .= '<div class="rc-field"><label>Bústaður<input type="text" name="address" value="' . esc_attr($data['address'] ?? '') . '"></label></div>';
-    $h .= '<div class="rc-field"><label>Býur/bygd<input type="text" name="city" value="' . esc_attr($data['city'] ?? '') . '"></label></div>';
+    $h .= '<h2 class="lf-form-title">Nýggjar skilmálar – kappingarloyvi</h2>';
+    $h .= '<p><small>Við at fylla kappingarloyvi út, váttar tú at tú heldur galdandi reglur hjá ÍSF og teimum altjóða sambondunum, sum Føroya Styrkisamband virkar undir, umframt kanningar fyri doping sambært hesum reglum.</small></p>';
+    $h .= '<p><small>Um tú skiftur felag, er neyðugt at fylla nýtt kappingarloyvið út.</small></p>';
+
+    // navn + føðingardagur
+    $h .= '<div class="lf-row">';
+    $h .= '<div class="lf-col"><p><label>Fulla navn á íðkara *<br>';
+    $h .= '<input type="text" name="name" required value="' . $name . '" placeholder="for-, millum- og eftirnavn">';
+    $h .= '</label></p></div>';
+    $h .= '<div class="lf-col"><p><label>Føðingardagur *<br>';
+    $h .= '<input type="text" name="birthdate" id="rc_birthdate" required value="' . $bdate . '" placeholder="dd.mm.áááá" pattern="\\d{2}\\.\\d{2}\\.\\d{4}">';
+    $h .= '</label><small>Skriva føðingardag sum dd.mm.áááá – punktum verða sett sjálvvirkandi.</small></p></div>';
     $h .= '</div>';
 
-    $h .= '<div class="rc-field"><label>Felag *<select name="club" required>';
-    $h .= '<option value="">Vel felag</option>';
+    // teldupostur + telefon
+    $h .= '<div class="lf-row">';
+    $h .= '<div class="lf-col"><p><label>Teldupostur hjá íðkara *<br>';
+    $h .= '<input type="email" name="email" required value="' . $email . '">';
+    $h .= '</label></p></div>';
+    $h .= '<div class="lf-col"><p><label>Telefonnummar hjá íðkara *<br>';
+    $h .= '<input type="text" name="phone" required value="' . $phone . '" pattern="[0-9+\\s]+" title="Telefonnummar má bara innihalda tøl, millumrúm og +">';
+    $h .= '</label></p></div>';
+    $h .= '</div>';
+
+    // bústaður + býur
+    $h .= '<div class="lf-row">';
+    $h .= '<div class="lf-col"><p><label>Bústaður hjá íðkara *<br>';
+    $h .= '<input type="text" name="address" required value="' . $addr . '">';
+    $h .= '</label></p></div>';
+    $h .= '<div class="lf-col"><p><label>Býur/bygd *<br>';
+    $h .= '<input type="text" name="city" required value="' . $city . '">';
+    $h .= '</label></p></div>';
+    $h .= '</div>';
+
+    // Guardian block — hidden by default, shown by JS when birthdate shows age < 18
+    $g_style = $is_minor_init ? '' : ' style="display:none;"';
+    $h .= '<div class="lf-guardian-block" id="rc_guardian_block"' . $g_style . '>';
+    $h .= '<p><strong>Um íðkarin er yngri enn 18 ár:</strong></p>';
+    $h .= '<div class="lf-row">';
+    $h .= '<div class="lf-col"><p><label>Navn á verja<br><input type="text" name="guardian_name" value="' . $gname . '"></label></p></div>';
+    $h .= '<div class="lf-col"><p><label>Telefonnummar hjá verja<br>';
+    $h .= '<input type="text" name="guardian_phone" value="' . $gphone . '" pattern="[0-9+\\s]+" title="Telefonnummar má bara innihalda tøl, millumrúm og +">';
+    $h .= '</label></p></div>';
+    $h .= '</div>';
+    $h .= '<p><label>Teldupostur hjá verja<br><input type="email" name="guardian_email" value="' . $gemail . '"></label></p>';
+    $h .= '</div>';
+
+    // Felag
+    $h .= '<div class="lf-row"><div class="lf-col"><p><label>Felag *<br>';
+    $h .= '<select name="club" required><option value="">Vel felag</option>';
     foreach ($clubs as $c) {
-        $sel = (($data['club'] ?? '') === $c) ? ' selected' : '';
+        $sel = ($club === $c) ? ' selected="selected"' : '';
         $h .= '<option value="' . esc_attr($c) . '"' . $sel . '>' . esc_html($c) . '</option>';
     }
-    $h .= '</select></label></div>';
+    $h .= '</select></label></p></div></div>';
 
-    $h .= '<div class="rc-field"><label><input type="checkbox" name="is_minor" value="1" id="rc_minor"' . ($is_minor ? ' checked' : '') . '> Íðkari er undir 18 ár</label></div>';
-
-    $h .= '<div id="rc_minor_block"' . ($is_minor ? '' : ' style="display:none;"') . '>';
-    $h .= '<div class="rc-minor-block">';
-    $h .= '<h2>Upplýsingar um verja</h2>';
-    $h .= '<div class="rc-row">';
-    $h .= '<div class="rc-field"><label>Navn á verja<input type="text" name="guardian_name" value="' . esc_attr($data['guardian_name'] ?? '') . '"></label></div>';
-    $h .= '<div class="rc-field"><label>Teldupostur hjá verja<input type="email" name="guardian_email" value="' . esc_attr($data['guardian_email'] ?? '') . '"></label></div>';
-    $h .= '</div>';
-    $h .= '<div class="rc-field"><label>Telefonnummar hjá verja<input type="text" name="guardian_phone" value="' . esc_attr($data['guardian_phone'] ?? '') . '"></label></div>';
-    $h .= '</div></div>';
-
-    $h .= '<h2>Váttanir</h2>';
-    $h .= '<ul class="rc-consent">';
-    foreach ($consent as $i => $label) {
-        $h .= '<li><input type="checkbox" name="consent[]" value="' . $i . '" required> <span>' . esc_html($label) . '</span></li>';
+    // Doping text (between felag and consents, matching original form)
+    if ($doping_html) {
+        $h .= '<p class="lf-info-block"><small>' . $doping_html . '</small></p>';
     }
-    $h .= '</ul>';
+
+    // Consents 1–4
+    foreach ([0, 1, 2, 3] as $i) {
+        $h .= '<p><label class="lf-consent-label"><input type="checkbox" name="consent[]" value="' . $i . '" required> ' . esc_html($consent[$i]) . '</label></p>';
+    }
+
+    // ADD block (between consent 4 and 5, matching original form)
+    if ($add_html) {
+        $h .= '<p class="lf-info-block">' . $add_html . '</p>';
+    }
+
+    // Consent 5
+    $h .= '<p><label class="lf-consent-label"><input type="checkbox" name="consent[]" value="4" required> ' . esc_html($consent[4]) . '</label></p>';
 
     $h .= '<input type="hidden" name="lf_reconsent_submit" value="1">';
     $h .= '<input type="hidden" name="lf_reconsent_token" value="' . esc_attr($token) . '">';
-    $h .= '<p><button type="submit" class="rc-btn">Staðfesta</button></p>';
-    $h .= '</form></div>';
-    $h .= '<script>(function(){var cb=document.getElementById("rc_minor"),bl=document.getElementById("rc_minor_block");if(cb&&bl)cb.addEventListener("change",function(){bl.style.display=cb.checked?"block":"none";});})();</script>';
+    $h .= '<p><button type="submit">Staðfesta</button></p>';
+    $h .= '</form>';
+
+    // Birthdate auto-format + guardian block show/hide (same logic as original lf-form.php)
+    $h .= '<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var bInput = document.getElementById("rc_birthdate");
+    var gBlock = document.getElementById("rc_guardian_block");
+
+    function updateGuardianBlock() {
+        if (!gBlock || !bInput) return;
+        var val = bInput.value.trim();
+        var m = val.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+        if (!m) { gBlock.style.display = "none"; return; }
+        var d = parseInt(m[1], 10), mo = parseInt(m[2], 10) - 1, y = parseInt(m[3], 10);
+        var dob = new Date(y, mo, d);
+        if (isNaN(dob.getTime())) { gBlock.style.display = "none"; return; }
+        var today = new Date();
+        var age = today.getFullYear() - y;
+        var mDiff = today.getMonth() - mo;
+        if (mDiff < 0 || (mDiff === 0 && today.getDate() < d)) age--;
+        if (age < 18) {
+            gBlock.style.display = "block";
+        } else {
+            gBlock.style.display = "none";
+            gBlock.querySelectorAll("input").forEach(function(inp) { inp.value = ""; });
+        }
+    }
+
+    if (bInput) {
+        bInput.addEventListener("input", function() {
+            var digits = this.value.replace(/\D/g, "").slice(0, 8);
+            var parts = [];
+            if (digits.length > 0) parts.push(digits.substring(0, Math.min(2, digits.length)));
+            if (digits.length >= 3) parts.push(digits.substring(2, Math.min(4, digits.length)));
+            if (digits.length >= 5) parts.push(digits.substring(4, 8));
+            this.value = parts.join(".");
+            updateGuardianBlock();
+        });
+    }
+});
+</script>';
 
     wp_die($h, 'Kappingarloyvi', ['response' => 200]);
 }
@@ -570,8 +696,16 @@ function lf_reconsent_handle_submit($row, $data, $role, $token) {
             $address   = sanitize_text_field(wp_unslash($_POST['address'] ?? ''));
             $city      = sanitize_text_field(wp_unslash($_POST['city'] ?? ''));
             $club_val  = sanitize_text_field(wp_unslash($_POST['club'] ?? ''));
-            $is_minor  = !empty($_POST['is_minor']);
             $clubs     = function_exists('lf_get_clubs') ? lf_get_clubs() : [];
+
+            // Derive minor status from birthdate (no checkbox — matches original form)
+            $is_minor = false;
+            if (preg_match('/^(\d{2})\.(\d{2})\.(\d{4})$/', $birthdate, $bm)) {
+                $dob = mktime(0, 0, 0, (int)$bm[2], (int)$bm[1], (int)$bm[3]);
+                if ($dob) {
+                    $is_minor = ((time() - $dob) / (365.25 * 86400)) < 18;
+                }
+            }
 
             if (!$name || !$birthdate || !$email || !$club_val || !in_array($club_val, $clubs, true)) {
                 wp_die($css . '<div class="rc-wrap"><div class="rc-card"><h1>Villa</h1><p>Fyll út øll kravdu felt og vel eitt gilt felag.</p><p><a href="' . $back . '">← Aftur</a></p></div></div>', 'Kappingarloyvi', ['response' => 200]);
