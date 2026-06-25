@@ -442,7 +442,7 @@ function lf_reconsent_form_athlete($data, $token, $url, $status, $consent, $css)
 
     // Pre-determine minor status so guardian block is visible on load if needed
     $is_minor_init = false;
-    if ($data['birthdate'] ?? '' && preg_match('/^(\d{2})\.(\d{2})\.(\d{4})$/', $data['birthdate'], $bm)) {
+    if (!empty($data['birthdate']) && preg_match('/^(\d{2})\.(\d{2})\.(\d{4})$/', $data['birthdate'], $bm)) {
         $dob = mktime(0, 0, 0, (int)$bm[2], (int)$bm[1], (int)$bm[3]);
         if ($dob) {
             $is_minor_init = ((time() - $dob) / (365.25 * 86400)) < 18;
