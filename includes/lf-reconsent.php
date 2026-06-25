@@ -225,10 +225,13 @@ function lf_reconsent_maybe_complete($row) {
 
 function lf_reconsent_css() {
     return '<style>
-    /* ── Page ── */
+    /* ── Page — override WordPress wp_die() default body box ── */
     *{box-sizing:border-box;}
-    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-         background:#f0f2f5;color:#1a1a2e;margin:0;padding:0;}
+    body,#error-page{
+        font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+        background:#f0f2f5 !important;color:#1a1a2e;
+        max-width:none !important;border:none !important;
+        box-shadow:none !important;margin:0 !important;padding:0 !important;}
 
     /* ── Original lf-form card (matches lf-styles.php exactly) ── */
     .lf-form{max-width:900px;margin:2rem auto 3rem;padding:1.75rem 2.5rem 2.5rem;
